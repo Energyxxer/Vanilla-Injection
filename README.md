@@ -14,6 +14,8 @@ In order to set up the injection structure block, place a structure block in you
 
 After that, make sure it is getting a redstone signal each tick. You may use any clock of your liking, but a setblock clock is recommended.
 
+You may have as many different injection modules open at the same time on the same world, but each module will need its own structure block to be running.
+
 # Jarbot
 There is no extra setup required for this module.
 The way jarbot operates is rather simple. If the Jarbot module is running in your world, Jarbot will respond to anything you say in chat (That doesn't start with a period ".").
