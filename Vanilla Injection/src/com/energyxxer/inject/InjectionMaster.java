@@ -14,11 +14,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * Class that controls all Vanilla Injection functions.
@@ -103,6 +100,16 @@ public class InjectionMaster {
     private boolean mute = true;
 
     /**
+     * Whether or not to print debug messages to the console.
+     * */
+    private boolean verbose = false;
+
+    /**
+     * The date format used for verbose timestamps.
+     * */
+    public static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("[HH:mm:ss]");
+
+    /**
      * Creates an injection master using the given world directory, log file, and injector prefix.
      *
      * @param worldDirectory File pointing to the folder of the world to inject to.
@@ -123,6 +130,7 @@ public class InjectionMaster {
      * */
     public void start() {
         if(running) throw new IllegalStateException("Injection is already running.");
+        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Starting injection master.");
 
         timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -152,6 +160,7 @@ public class InjectionMaster {
      * */
     public void stop() {
         if(!running) throw new IllegalStateException("Injection is not currently running.");
+        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Stopping injection master.");
 
         timer.cancel();
         timer = null;
@@ -169,14 +178,14 @@ public class InjectionMaster {
      * Pauses the injection master.
      * */
     void pause() {
-        System.out.println("paused");
+        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Pausing injection master.");
         paused = true;
     }
     /**
      * Resumes the injection master.
      * */
     void resume() {
-        System.out.println("resuming");
+        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Resuming injection master.");
         paused = false;
     }
 
@@ -190,6 +199,7 @@ public class InjectionMaster {
 
         if(logCheckFrequency <= 0) throw new IllegalArgumentException("Non-positive log check frequency.");
 
+        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Setting log check frequency to " + logCheckFrequency + ".");
         this.logCheckFrequency = logCheckFrequency;
     }
 
@@ -203,6 +213,7 @@ public class InjectionMaster {
 
         if(injectionFrequency <= 0) throw new IllegalArgumentException("Non-positive injection frequency.");
 
+        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Setting injection frequency to " + injectionFrequency + ".");
         this.injectionFrequency = injectionFrequency;
     }
 
@@ -216,6 +227,7 @@ public class InjectionMaster {
 
         if(processingFrequency <= 0) throw new IllegalArgumentException("Non-positive processing frequency.");
 
+        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Setting processing frequency to " + processingFrequency + ".");
         this.processingFrequency = processingFrequency;
     }
 
@@ -229,6 +241,7 @@ public class InjectionMaster {
 
         if(chunkRefreshFrequency <= 0) throw new IllegalArgumentException("Non-positive chunk refreshing frequency.");
 
+        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Setting chunk refresh frequency to " + chunkRefreshFrequency + ".");
         this.chunkRefreshFrequency = chunkRefreshFrequency;
     }
 
@@ -388,6 +401,24 @@ public class InjectionMaster {
      * */
     public String getPrefix() {
         return prefix;
+    }
+
+    /**
+     * Returns true if this master is set to print debug messages.
+     *
+     * @return This master's verbose.
+     * */
+    public boolean isVerbose() {
+        return verbose;
+    }
+
+    /**
+     * Sets whether or not this injection master should print debug messages.
+     *
+     * @param verbose Whether this master should print debug messages.
+     * */
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
     }
 
     /**

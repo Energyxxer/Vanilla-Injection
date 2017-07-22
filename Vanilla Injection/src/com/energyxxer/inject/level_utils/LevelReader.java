@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.zip.InflaterInputStream;
 
@@ -368,6 +369,7 @@ public class LevelReader {
      * Clears this level reader's chunk memory for chunks to be read from file again.
      * */
     public void clearChunkMemory() {
+        if(master.isVerbose()) System.out.println(InjectionMaster.TIME_FORMAT.format(new Date()) + " [LevelReader] Clearing " + chunkMemory.size() + " chunk(s) from memory.");
         chunkMemory.clear();
     }
 }

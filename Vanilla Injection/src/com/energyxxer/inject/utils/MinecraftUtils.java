@@ -26,7 +26,8 @@ public class MinecraftUtils {
             if(OS.contains("MAC")) workingDirectory += "/Library/Application Support";
         }
 
-        workingDirectory += File.separator + ".minecraft";
+        if(OS.contains("MAC")) workingDirectory += File.separator + "minecraft";
+        else workingDirectory += File.separator + ".minecraft";
 
         return workingDirectory;
     }

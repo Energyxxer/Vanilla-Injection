@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Class containing functions related to converting lists of commands
@@ -120,7 +121,9 @@ public class Injector {
                 String[] lines = contents.split("\n");
                 for(String line : lines) {
                     if(line.startsWith("l")) {
-                        this.structureID = Integer.parseInt(line.substring(1,line.length()-1));
+                        String raw = line.substring(1);
+                        if(raw.endsWith("\r")) raw = raw.substring(0, raw.length()-1);
+                        this.structureID = Integer.parseInt(raw);
                     }
                 }
             }
@@ -141,6 +144,7 @@ public class Injector {
             int i = lastLoadedId-5;
             File f;
             while((f = new File(injectFolderPath + master.prefix + i-- + ".nbt")).exists()) {
+                if(master.isVerbose()) System.out.println(InjectionMaster.TIME_FORMAT.format(new Date()) + " [Injector] Deleting structure '" + f.getName() + "'.");
                 boolean success = f.delete();
                 if(!success) System.out.println("[WARNING] " + f + " couldn't be deleted.");
             }
@@ -366,7 +370,7 @@ public class Injector {
 
         if(structureID % 10 == 0) {
             insertFetchCommand("gamerule logAdminCommands true","$" + master.prefix + structureID);
-            if(lastLoadedId < structureID - 10 && (lastLoadedId > -1 || filesCreated > 0)) {
+            if(lastLoadedId < structureID - 10 && (lastLoadedId > -1 || filesCreated > 10)) {
                 master.pause();
             }
         }

@@ -7,6 +7,8 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 /**
  * Test graphical interface for the setup of injection modules.
@@ -106,12 +108,31 @@ public class DisplayWindow extends JFrame {
         confirm.setBackground(new Color(70, 72, 75));
         confirm.setForeground(FOREGROUND);
 
-        confirm.addActionListener(e -> {
+        Runnable confirmAction = () -> {
             this.directory = directoryInput.getText();
             this.world = worldInput.getText();
             this.dispatchSetupEvent();
             this.updateContentPane();
+        };
+        directoryInput.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    confirmAction.run();
+                }
+            }
         });
+
+        worldInput.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    confirmAction.run();
+                }
+            }
+        });
+
+        confirm.addActionListener(e -> confirmAction.run());
 
         setupPanel.add(confirm);
 
