@@ -38,9 +38,9 @@ public class WarpSystem implements SetupListener {
     }
 
     @Override
-    public void onSetup(String directory, String worldName) {
-        this.warpLogFile = new File(directory + File.separator + "saves" + File.separator + worldName + File.separator + "warps.txt");
-        master = new InjectionMaster(new File(directory + File.separator + "saves" + File.separator + worldName), new File(directory + File.separator + "logs" + File.separator + "latest.log"), "warp");
+    public void onSetup(File log, File world) {
+        master = new InjectionMaster(world, log, "warp");
+        warpLogFile = new File(world.getAbsolutePath() + File.separator + "warps.txt");
         master.setLogCheckFrequency(500);
         master.setInjectionFrequency(500);
 

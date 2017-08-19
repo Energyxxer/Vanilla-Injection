@@ -23,8 +23,8 @@ public class ChatDemo implements SetupListener {
     }
 
     @Override
-    public void onSetup(String directory, String worldName) {
-        master = new InjectionMaster(new File(directory + File.separator + "saves" + File.separator + worldName), new File(directory + File.separator + "logs" + File.separator + "latest.log"), "jarbot");
+    public void onSetup(File log, File world) {
+        master = new InjectionMaster(world, log, "jarbot");
         master.setLogCheckFrequency(500);
         master.setInjectionFrequency(500);
 

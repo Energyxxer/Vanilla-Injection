@@ -29,8 +29,8 @@ public class WorldEdit implements SetupListener{
     }
 
     @Override
-    public void onSetup(String directory, String worldName) {
-        master = new InjectionMaster(new File(directory + File.separator + "saves" + File.separator + worldName), new File(directory + File.separator + "logs" + File.separator + "latest.log"), "worldedit");
+    public void onSetup(File log, File world) {
+        master = new InjectionMaster(world, log, "worldedit");
         master.setLogCheckFrequency(500);
         master.setInjectionFrequency(500);
 

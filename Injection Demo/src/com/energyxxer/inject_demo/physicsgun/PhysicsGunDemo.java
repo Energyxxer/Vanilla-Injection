@@ -33,8 +33,8 @@ public class PhysicsGunDemo implements SetupListener {
     }
 
     @Override
-    public void onSetup(String directory, String worldName) {
-        master = new InjectionMaster(new File(directory + File.separator + "saves" + File.separator + worldName), new File(directory + File.separator + "logs" + File.separator + "latest.log"), "physicsgun");
+    public void onSetup(File log, File world) {
+        master = new InjectionMaster(world, log, "physicsgun");
         master.setLogCheckFrequency(100);
         master.setInjectionFrequency(50);
         master.setProcessingFrequency(100);
