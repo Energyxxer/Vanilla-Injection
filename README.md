@@ -3,7 +3,7 @@ A library for the communication of Java programs and the Minecraft environment
 
 # Examples
 Examples shown in the video are available as source code (Injection Demo/src) and as ready-to-run executables (Compiled examples). Required functions and resource packs are also in the compiled examples.
-When opening the example .jar files, you will be prompted a .minecraft directory path (It will try to guess the default path), and the name of the world folder to run the module in. Once you click "OK", the module should be running.
+When opening the example .jar files, you will be prompted the path to the log file, and the path to the world folder (It will try to guess the default paths). If either of those files do not exist, the path will be shown red, to let you know there's a mistake somewhere. Once you click "OK", the module should be running.
 In order to set up the injection structure block, place a structure block in your world (Make sure there is enough space for the structure; some modules, like the tree generator, require a lot more space than others), set it to LOAD mode, and set it to load the following structures:
 
   * for Jarbot, load "inject/jarbot0"
