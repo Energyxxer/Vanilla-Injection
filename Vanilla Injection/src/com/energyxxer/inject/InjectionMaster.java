@@ -342,7 +342,7 @@ public class InjectionMaster {
             lastLine = linesScanned + 1;
         } catch(FileNotFoundException x) {
             stop();
-            throw new RuntimeException("Log file not found. Stopping injection.");
+            throw new RuntimeException("Log file not found. Stopping injection.", x);
         } finally {
             if(mute) mute = false;
             if (inputStream != null) {
