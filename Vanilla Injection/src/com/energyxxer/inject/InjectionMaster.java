@@ -1,5 +1,14 @@
 package com.energyxxer.inject;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import com.energyxxer.inject.exceptions.IllegalStateException;
 import com.energyxxer.inject.level_utils.LevelReader;
 import com.energyxxer.inject.listeners.ChatEvent;
@@ -9,13 +18,8 @@ import com.energyxxer.inject.listeners.LogListener;
 import com.energyxxer.inject.listeners.ProcessingTickListener;
 import com.energyxxer.inject.listeners.SuccessEvent;
 import com.energyxxer.inject.listeners.SuccessListener;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import com.energyxxer.inject.utils.LogFileReader;
+import com.google.common.base.Charsets;
 
 /**
  * Class that controls all Vanilla Injection functions.
@@ -34,12 +38,6 @@ public class InjectionMaster {
      * The prefix given to all structures spawned with this master.
      * */
     final String prefix;
-
-    /**
-     * Number of lines previously read from the log. -1 if the
-     * log hasn't been read before.
-     * */
-    private static int lastLine = -1;
 
     /**
      * List containing all log listeners for this master.
@@ -95,11 +93,6 @@ public class InjectionMaster {
     public final LevelReader reader;
 
     /**
-     * Whether not to fire log events next time the log is read.
-     * */
-    private boolean mute = true;
-
-    /**
      * Whether or not to print debug messages to the console.
      * */
     private boolean verbose = false;
@@ -132,11 +125,17 @@ public class InjectionMaster {
         if(running) throw new IllegalStateException("Injection is already running.");
         if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Starting injection master.");
 
+        LogFileReader reader;
+        try {
+          reader = new LogFileReader(logFile.toPath());
+        } catch (IOException ex) {
+          throw new java.lang.IllegalStateException("Log file not found.", ex);
+        }
         timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                checkLogChanges();
+                reader.readAddedLines(Charsets.UTF_8, line -> handleLogLine(line));
             }
         }, 0, logCheckFrequency);
         timer.schedule(new TimerTask() {
@@ -296,66 +295,23 @@ public class InjectionMaster {
         processingTickListeners.forEach(ProcessingTickListener::onTick);
     }
 
-    /**
-     * Checks any changes in the log file and, if not muted, dispatches the appropriate log and chat events.
-     * */
-    private void checkLogChanges() {
+    protected void handleLogLine(String line) {
+      dispatchLogEvent(new LogEvent(line));
+      ChatEvent ce = ChatEvent.createFromLogLine(line);
+      if (ce != null) {
+        dispatchChatEvent(ce);
+      }
 
-        FileInputStream inputStream = null;
-        Scanner sc = null;
-        try {
-            inputStream = new FileInputStream(logFile.getPath());
-            sc = new Scanner(inputStream, "UTF-8");
-
-            int linesScanned = -1;
-
-            ArrayList<String> successListenersToRemove = new ArrayList<>();
-
-            while (sc.hasNextLine()) {
-                String line = sc.nextLine();
-
-                linesScanned++;
-                if(linesScanned < lastLine) {
-                    continue;
-                }
-
-                if(!mute) {
-                    dispatchLogEvent(new LogEvent(line));
-                    ChatEvent ce = ChatEvent.createFromLogLine(line);
-                    if(ce != null) dispatchChatEvent(ce);
-
-                    for(String invoker : successListeners.keySet()) {
-                        SuccessEvent se = SuccessEvent.createFromLogLine(line, invoker);
-                        if(se != null) {
-                            SuccessListener listener = successListeners.get(invoker);
-                            listener.onSuccess(se);
-                            if(listener.doOnce() && !successListenersToRemove.contains(invoker)) successListenersToRemove.add(invoker);
-                        }
-                    }
-                }
-            }
-
-            for(String key : successListenersToRemove) {
-                successListeners.remove(key);
-            }
-
-            lastLine = linesScanned + 1;
-        } catch(FileNotFoundException x) {
-            stop();
-            throw new RuntimeException("Log file not found. Stopping injection.");
-        } finally {
-            if(mute) mute = false;
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException x) {
-                    x.printStackTrace();
-                }
-            }
-            if (sc != null) {
-                sc.close();
-            }
+      for (String invoker : new ArrayList<>(successListeners.keySet())) {
+        SuccessEvent se = SuccessEvent.createFromLogLine(line, invoker);
+        if (se != null) {
+          SuccessListener listener = successListeners.get(invoker);
+          listener.onSuccess(se);
+          if (listener.doOnce()) {
+            successListeners.remove(invoker);
+          }
         }
+      }
     }
 
     /**
