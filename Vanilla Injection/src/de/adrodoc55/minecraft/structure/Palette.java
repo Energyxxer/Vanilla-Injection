@@ -22,17 +22,13 @@ class Palette {
 
   public TagCompound toNbt(Block block) {
     TagCompound result = new TagCompound("");
-    result.setTag(getState(block));
+    result.setTag(new TagInteger("state", getStateIndex(block)));
     result.setTag(new TagList("pos", Structure.toNbt(block.getCoordinate())));
     TagCompound nbt = block.getNbt();
     if (nbt != null) {
       result.setTag(nbt);
     }
     return result;
-  }
-
-  private TagInteger getState(Block block) {
-    return new TagInteger("state", getStateIndex(block));
   }
 
   private int getStateIndex(Block block) {

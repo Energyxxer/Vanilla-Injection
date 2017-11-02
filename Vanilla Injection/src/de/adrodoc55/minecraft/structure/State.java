@@ -5,6 +5,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.annotation.concurrent.Immutable;
+
 import com.evilco.mc.nbt.tag.TagCompound;
 import com.evilco.mc.nbt.tag.TagString;
 import com.google.common.collect.ImmutableMap;
@@ -12,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 /**
  * @author Adrodoc55
  */
+@Immutable
 class State {
   private final String name;
   private final ImmutableMap<String, String> properties;

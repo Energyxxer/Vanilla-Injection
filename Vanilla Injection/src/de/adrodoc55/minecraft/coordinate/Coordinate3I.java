@@ -11,6 +11,8 @@ import javax.annotation.concurrent.Immutable;
 import com.google.common.collect.Collections2;
 
 /**
+ * A three dimensional {@code int} coordinate.
+ *
  * @author Adrodoc55
  */
 @Immutable
@@ -34,16 +36,11 @@ public class Coordinate3I implements Cloneable {
   }
 
   public static Optional<Coordinate3I> getMin(Collection<Coordinate3I> coordinates) {
-    return reduce(coordinates, Math::min);
+    return coordinates.stream().reduce(getBinaryOperator(Math::min));
   }
 
   public static Optional<Coordinate3I> getMax(Collection<Coordinate3I> coordinates) {
-    return reduce(coordinates, Math::max);
-  }
-
-  private static Optional<Coordinate3I> reduce(Collection<Coordinate3I> coordinates,
-      IntBinaryOperator op) {
-    return coordinates.stream().reduce(getBinaryOperator(op));
+    return coordinates.stream().reduce(getBinaryOperator(Math::max));
   }
 
   public static BinaryOperator<Coordinate3I> getBinaryOperator(IntBinaryOperator op) {
