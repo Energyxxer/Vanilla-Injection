@@ -1,22 +1,24 @@
 package com.energyxxer.inject.structures;
 
-import com.energyxxer.inject.jnbt.ByteTag;
-import com.energyxxer.inject.jnbt.ListTag;
-import com.energyxxer.inject.jnbt.StringTag;
-import com.energyxxer.inject.jnbt.Tag;
-import com.energyxxer.inject.structures.builder.StructureBuilder;
-import com.energyxxer.inject.structures.builder.StructureEntityEntry;
-import com.energyxxer.inject.utils.Vector3D;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import com.energyxxer.inject.utils.Vector3D;
+import com.evilco.mc.nbt.tag.ITag;
+import com.evilco.mc.nbt.tag.TagByte;
+import com.evilco.mc.nbt.tag.TagCompound;
+import com.evilco.mc.nbt.tag.TagList;
+import com.evilco.mc.nbt.tag.TagString;
+
+import de.adrodoc55.minecraft.coordinate.Coordinate3D;
+import de.adrodoc55.minecraft.structure.Entity;
 
 /**
  * Class containing information about a command block minecart. Not to be confused with a <code>CommandBlock</code>.
  *
  * @see CommandBlock
  */
-public class CommandBlockMinecart {
+public class CommandBlockMinecart implements Entity {
     /**
      * The command in this minecart.
      * */
@@ -130,26 +132,25 @@ public class CommandBlockMinecart {
         tags.add(tag);
     }
 
-    /**
-     * Inserts the command block minecart's information into the given <code>StructureBuilder</code>.
-     *
-     * @param builder The builder to insert this command block minecart to.
-     * */
-    public void insertTo(StructureBuilder builder) {
-        StructureEntityEntry entry = new StructureEntityEntry(new Vector3D.Double(pos.x + 0.5,pos.y + 0.0625, pos.z + 0.5));
 
-        entry.putNBT(new StringTag("Command", command));
-        entry.putNBT(new StringTag("CustomName", name));
-        entry.putNBT(new StringTag("id", "minecraft:commandblock_minecart"));
-        entry.putNBT(new ByteTag("TrackOutput", (byte) 1));
+    @Override
+    public Coordinate3D getCoordinate() {
+      return new Coordinate3D(pos.x + 0.5, pos.y + 0.0625, pos.z + 0.5);
+    }
 
-        ArrayList<Tag> tagsTag = new ArrayList<>();
-        for(String tag : tags) {
-            tagsTag.add(new StringTag("", tag));
-        }
-        entry.putNBT(new ListTag("Tags", StringTag.class, tagsTag));
-
-        builder.entities.addEntry(entry);
+    @Override
+    public TagCompound getNbt() {
+      TagCompound nbt = new TagCompound("nbt");
+      nbt.setTag(new TagString("Command", command));
+      nbt.setTag(new TagString("CustomName", name));
+      nbt.setTag(new TagString("id", "minecraft:commandblock_minecart"));
+      nbt.setTag(new TagByte("TrackOutput", (byte) 1));
+      ArrayList<ITag> tags = new ArrayList<>();
+      for(String tag : this.tags) {
+          tags.add(new TagString("", tag));
+      }
+      nbt.setTag(new TagList("Tags", tags));
+      return nbt;
     }
 
     @Override

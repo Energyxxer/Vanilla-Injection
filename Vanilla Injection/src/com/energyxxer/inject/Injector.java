@@ -1,24 +1,31 @@
 package com.energyxxer.inject;
 
-import com.energyxxer.inject.jnbt.IntTag;
-import com.energyxxer.inject.jnbt.StringTag;
-import com.energyxxer.inject.listeners.SuccessEvent;
-import com.energyxxer.inject.listeners.SuccessListener;
-import com.energyxxer.inject.structures.CommandBlock;
-import com.energyxxer.inject.structures.CommandBlockMinecart;
-import com.energyxxer.inject.structures.builder.StructureBlockEntry;
-import com.energyxxer.inject.structures.builder.StructureBuilder;
-import com.energyxxer.inject.structures.builder.StructurePaletteEntry;
-import com.energyxxer.inject.structures.layout.ChainLayoutManager;
-import com.energyxxer.inject.structures.layout.YZXChainLayoutManager;
-import com.energyxxer.inject.utils.Vector3D;
+import static com.energyxxer.inject.structures.StructureBlock.Mode.LOAD;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.zip.GZIPOutputStream;
+
+import com.energyxxer.inject.listeners.SuccessEvent;
+import com.energyxxer.inject.listeners.SuccessListener;
+import com.energyxxer.inject.structures.CommandBlock;
+import com.energyxxer.inject.structures.CommandBlockMinecart;
+import com.energyxxer.inject.structures.StructureBlock;
+import com.energyxxer.inject.structures.layout.ChainLayoutManager;
+import com.energyxxer.inject.structures.layout.YZXChainLayoutManager;
+import com.energyxxer.inject.utils.Vector3D;
+import com.evilco.mc.nbt.stream.NbtOutputStream;
+import com.evilco.mc.nbt.tag.TagCompound;
+
+import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.structure.SimpleBlock;
+import de.adrodoc55.minecraft.structure.SimpleBlockState;
+import de.adrodoc55.minecraft.structure.Structure;
 
 /**
  * Class containing functions related to converting lists of commands
@@ -343,30 +350,9 @@ public class Injector {
     void flush() {
         if(commandBuffer.size() == 0 && repeatingCommandBuffer.size() == 0 && fetchCommandBuffer.size() == 0) return;
 
-        StructureBuilder builder = new StructureBuilder(injectFolderPath + master.prefix + structureID + ".nbt");
-
-        ArrayList<Vector3D> pointsUsed = new ArrayList<>();
-        pointsUsed.add(new Vector3D(0,0,0));
-
-        StructurePaletteEntry airEntry = new StructurePaletteEntry("minecraft:air");
-        int airState = builder.palette.addEntry(airEntry);
-
-        {
-            StructurePaletteEntry entry = new StructurePaletteEntry("minecraft:structure_block");
-            entry.putProperty("mode","load");
-            int structureBlockState = builder.palette.addEntry(entry);
-
-            StructureBlockEntry block = new StructureBlockEntry(new Vector3D(0,0,0), structureBlockState);
-            block.putNBT(new IntTag("posX",0));
-            block.putNBT(new IntTag("posY",0));
-            block.putNBT(new IntTag("posZ",0));
-
-            block.putNBT(new StringTag("mode","LOAD"));
-
-            block.putNBT(new StringTag("name","inject/" + master.prefix + (structureID+1)));
-
-            builder.blocks.addEntry(block);
-        }
+        Structure structure = new Structure(922, "Vanilla-Injection");
+        structure.setBackground(new SimpleBlockState("minecraft:air"));
+        structure.addBlock(new StructureBlock(new Coordinate3I(), LOAD, "inject/" + master.prefix + (structureID + 1)));
 
         if(structureID % 10 == 0) {
             insertFetchCommand("gamerule logAdminCommands true","$" + master.prefix + structureID);
@@ -380,31 +366,14 @@ public class Injector {
         startPoint = layoutManager.arrange(commandBuffer, new Vector3D(startPoint), new Vector3D(this.impulseSize));
         layoutManager.arrange(repeatingCommandBuffer, new Vector3D(startPoint), new Vector3D(this.repeatingSize));
 
-        for (int i = repeatingCommandBuffer.size() - 1; i >= 0; i--) {
-            CommandBlock block = repeatingCommandBuffer.get(i);
-            block.insertTo(builder);
-            pointsUsed.add(block.getPos());
-        }
-        for (int i = commandBuffer.size() - 1; i >= 0; i--) {
-            CommandBlock block = commandBuffer.get(i);
-            block.insertTo(builder);
-            pointsUsed.add(block.getPos());
-        }
+        structure.addBlocks(repeatingCommandBuffer);
+        structure.addBlocks(commandBuffer);
 
-        {
-            StructurePaletteEntry rb = new StructurePaletteEntry("minecraft:redstone_block");
-            int rbState = builder.palette.addEntry(rb);
-            StructurePaletteEntry ar = new StructurePaletteEntry("minecraft:activator_rail");
-            ar.putProperty("powered","true");
-            ar.putProperty("shape","north_south");
-            int arState = builder.palette.addEntry(ar);
-
-            builder.blocks.addEntry(new StructureBlockEntry(new Vector3D(0,0,2),rbState));
-            builder.blocks.addEntry(new StructureBlockEntry(new Vector3D(0,1,2),arState));
-
-            pointsUsed.add(new Vector3D(0,0,2));
-            pointsUsed.add(new Vector3D(0,1,2));
-        }
+        structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Coordinate3I(0,0,2)));
+        SimpleBlock activatorRail = new SimpleBlock("minecraft:activator_rail", new Coordinate3I(0,1,2));
+        activatorRail.putProperty("powered","true");
+        activatorRail.putProperty("shape","north_south");
+        structure.addBlock(activatorRail);
 
         if(fetchCommandBuffer.size() > 0) {
             fetchCommandBuffer.add(0,new AbstractCommand("gamerule logAdminCommands true"));
@@ -414,29 +383,17 @@ public class Injector {
         for(AbstractCommand command : fetchCommandBuffer) {
             CommandBlockMinecart minecart = new CommandBlockMinecart(command.command, command.name, new Vector3D(0,1,2));
             minecart.addTag("injector_fetch" + structureID);
-            minecart.insertTo(builder);
+            structure.addEntity(minecart);
         }
 
-        Vector3D size = layoutManager.mergeSizes(this.impulseSize, this.repeatingSize);
-        size.translate(2,0,0);
-        size.z = Math.max(3,size.z);
-
-        for(int x = 0; x < size.x; x++) {
-            for(int y = 0; y < size.y; y++) {
-                for(int z = 0; z < size.z; z++) {
-                    Vector3D point = new Vector3D(x,y,z);
-                    if(!pointsUsed.contains(point)) builder.blocks.addEntry(new StructureBlockEntry(point, airState), true);
-                }
-            }
-        }
-
-        try {
-            builder.build();
-            {
-                PrintWriter pw = new PrintWriter(injectDataFile);
-                pw.println("l" + (structureID + 1));
-                pw.close();
-            }
+        TagCompound nbt = structure.toNbt();
+        try (
+            FileOutputStream fos = new FileOutputStream(injectFolderPath + master.prefix + structureID + ".nbt");
+            GZIPOutputStream zos = new GZIPOutputStream(fos);
+            NbtOutputStream nos = new NbtOutputStream(zos);
+            PrintWriter pw = new PrintWriter(injectDataFile);) {
+          nos.write(nbt);
+          pw.println("l" + (structureID + 1));
             structureID++;
             filesCreated++;
         } catch(IOException x) {

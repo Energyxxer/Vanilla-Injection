@@ -1,11 +1,15 @@
 package com.energyxxer.inject.structures;
 
-import com.energyxxer.inject.jnbt.ByteTag;
-import com.energyxxer.inject.jnbt.StringTag;
-import com.energyxxer.inject.structures.builder.StructureBlockEntry;
-import com.energyxxer.inject.structures.builder.StructureBuilder;
-import com.energyxxer.inject.structures.builder.StructurePaletteEntry;
+import java.util.HashMap;
+import java.util.Map;
+
 import com.energyxxer.inject.utils.Vector3D;
+import com.evilco.mc.nbt.tag.TagByte;
+import com.evilco.mc.nbt.tag.TagCompound;
+import com.evilco.mc.nbt.tag.TagString;
+
+import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.structure.Block;
 
 /**
  * Class containing information about a command block. It contains more information about the command block than the <code>AbstractCommand</code> class.
@@ -13,7 +17,7 @@ import com.energyxxer.inject.utils.Vector3D;
  * @see com.energyxxer.inject.AbstractCommand
  * @see CommandBlockMinecart
  */
-public class CommandBlock {
+public class CommandBlock implements Block {
     /**
      * Enum containing all types of command blocks and their block IDs.
      * */
@@ -279,24 +283,32 @@ public class CommandBlock {
         this.pos = pos;
     }
 
-    /**
-     * Inserts the command block's information into the given <code>StructureBuilder</code>. This includes
-     * adding the block palette entry and the block entry.
-     *
-     * @param builder The builder to insert this command block to.
-     * */
-    public void insertTo(StructureBuilder builder) {
-        StructurePaletteEntry paletteEntry = new StructurePaletteEntry(this.type.id);
-        paletteEntry.putProperty("facing", this.orientation.toString().toLowerCase());
-        int state = builder.palette.addEntry(paletteEntry);
+    @Override
+    public String getStringId() {
+      return type.id;
+    }
 
-        StructureBlockEntry blockEntry = new StructureBlockEntry(this.pos, state);
-        blockEntry.putNBT(new ByteTag("auto", (byte) 1));
-        blockEntry.putNBT(new StringTag("Command", this.command));
-        blockEntry.putNBT(new ByteTag("TrackOutput", (byte) ((trackOutput) ? 1 : 0)));
-        if(name != null)
-            blockEntry.putNBT(new StringTag("CustomName", name));
-        builder.blocks.addEntry(blockEntry);
+    @Override
+    public Map<String, String> getProperties() {
+      HashMap<String, String> properties = new HashMap<>();
+      properties.put("facing", this.orientation.toString().toLowerCase());
+      return properties;
+    }
+
+    @Override
+    public Coordinate3I getCoordinate() {
+      return new Coordinate3I(pos.x, pos.y,pos. z);
+    }
+
+    @Override
+    public TagCompound getNbt() {
+      TagCompound nbt = new TagCompound("nbt");
+      nbt.setTag(new TagByte("auto", (byte) 1));
+      nbt.setTag(new TagString("Command", command));
+      nbt.setTag(new TagByte("TrackOutput", (byte) (trackOutput ? 1 : 0)));
+      if (name != null)
+        nbt.setTag(new TagString("CustomName", name));
+      return nbt;
     }
 
     @Override
