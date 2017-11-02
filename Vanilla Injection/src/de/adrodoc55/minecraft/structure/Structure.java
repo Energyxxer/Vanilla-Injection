@@ -205,8 +205,9 @@ public class Structure {
         blocks.keySet().stream(), //
         entities.stream()//
             .map(Entity::getCoordinate)//
-            .map(Coordinate3D::ceil)//
+            .map(Coordinate3D::floor)//
     ).reduce(Coordinate3I.getBinaryOperator(Math::max))//
+        .map(c -> c.plus(new Coordinate3I(1, 1, 1)))//
         .orElse(new Coordinate3I());
   }
 
@@ -223,9 +224,9 @@ public class Structure {
     Coordinate3I size = getSize();
     List<Block> blocks = new ArrayList<>(this.blocks.values());
     if (background != null) {
-      for (int x = 0; x <= size.getX(); x++) {
-        for (int y = 0; y <= size.getY(); y++) {
-          for (int z = 0; z <= size.getZ(); z++) {
+      for (int x = 0; x < size.getX(); x++) {
+        for (int y = 0; y < size.getY(); y++) {
+          for (int z = 0; z < size.getZ(); z++) {
             Coordinate3I coordinate = new Coordinate3I(x, y, z);
             if (!this.blocks.containsKey(coordinate)) {
               blocks.add(new SimpleBlock(background, coordinate));
