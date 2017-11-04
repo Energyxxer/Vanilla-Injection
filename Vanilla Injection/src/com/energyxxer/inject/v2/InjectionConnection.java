@@ -9,6 +9,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -80,17 +81,24 @@ public class InjectionConnection implements AutoCloseable {
    */
   private @Nullable LogFileReader reader;
 
+  /**
+   * The {@link ScheduledFuture} used to cancel periodic {@link #checkLog() log checking}. The
+   * {@link #logCheckFuture} is {@code null} unless the connection {@link #isOpen()}.
+   */
   private @Nullable ScheduledFuture<?> logCheckFuture;
   private long logCheckPeriod = 20;
   private TimeUnit logCheckTimeUnit = MILLISECONDS;
 
+  /**
+   * The {@link ScheduledFuture} used to cancel periodic {@link #flush() flushing}. The
+   * {@link #flushFuture} is {@code null} unless the connection {@link #isActive()}.
+   */
   private @Nullable ScheduledFuture<?> flushFuture;
   private long flushPeriod = 20;
   private TimeUnit flushTimeUnit = MILLISECONDS;
 
-  private final Collection<Consumer<? super LogEvent>> logListeners = new CopyOnWriteArrayList<>();
-  private final Collection<Consumer<? super ChatEvent>> chatListeners =
-      new CopyOnWriteArrayList<>();
+  private final List<Consumer<? super LogEvent>> logListeners = new CopyOnWriteArrayList<>();
+  private final List<Consumer<? super ChatEvent>> chatListeners = new CopyOnWriteArrayList<>();
   private final Collection<SuccessListenerEntry> successListeners = new ConcurrentLinkedQueue<>();
 
   private final AtomicInteger structureId = new AtomicInteger();
@@ -129,7 +137,8 @@ public class InjectionConnection implements AutoCloseable {
    *
    * @param logFile the {@link #logFile} of the Minecraft installation
    * @param worldDir the {@link #worldDir} of the Minecraft world
-   * @param identifier the unique {@link #identifier} for this connection in the Minecraft world
+   * @param identifier the unique {@link #identifier} for {@code this} connection in the Minecraft
+   *        world
    * @throws IOException if an I/O error occurs while {@link #open() opening} the connection
    * @throws InterruptedException if the current thread is interrupted while waiting for Minecraft's
    *         response
@@ -143,6 +152,15 @@ public class InjectionConnection implements AutoCloseable {
     open();
   }
 
+  /**
+   * {@link #isOpen() Open} {@code this} connection and wait for a response from Minecraft. Once the
+   * response is received, {@link #isActive() activate} {@code this} connection.
+   *
+   * @throws IOException if an I/O error occurs while opening the {@link #logFile} or
+   *         {@link #flush() flushing}
+   * @throws InterruptedException if the current thread is interrupted while waiting for Minecraft's
+   *         response
+   */
   public void open() throws IOException, InterruptedException {
     checkState(!isOpen(), "This connection is already established!");
     logger.info("Establishing {}", this);
@@ -166,49 +184,105 @@ public class InjectionConnection implements AutoCloseable {
     if (isOpen()) {
       logger.info("Closing {}", this);
       if (isActive()) {
-        cancelTasks();
+        cancelPeriodicFlush();
       }
+      cancelPeriodicLogCheck();
       executor.shutdown();
       executor = null;
       reader = null;
     }
   }
 
-  public boolean pause() {
+  /**
+   * Pause {@code this} connection by canceling periodic {@link #flush() flushing}. Pausing does not
+   * stop periodic {@link #checkLog() log checking}.<br>
+   * After pausing {@link #isOpen()} will return {@code true} and {@link #isActive()} will return
+   * {@code false}.
+   *
+   * @return {@code true} if {@code this} connection was paused just now, {@code false} if it was
+   *         already paused and not {@link #isActive() active}
+   * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
+   */
+  public boolean pause() throws IllegalStateException {
     checkOpen();
     if (!isActive()) {
       return false;
     }
     logger.info("Pausing {}", this);
-    cancelTasks();
+    cancelPeriodicFlush();
     return true;
   }
 
-  public boolean resume() {
+  /**
+   * Resume {@code this} connection by scheduling periodic {@link #flush() flushing}.<br>
+   * After resuming both {@link #isOpen()} and {@link #isActive()} will return {@code true}.
+   *
+   * @return {@code true} if {@code this} connection was activated just now, {@code false} if it was
+   *         already {@link #isActive() active}
+   * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
+   */
+  public boolean resume() throws IllegalStateException {
     checkOpen();
     if (isActive()) {
       return false;
     }
     logger.info("Resuming {}", this);
-    scheduleTasks();
+    schedulePeriodicFlush();
     return true;
   }
 
-  private void checkOpen() {
+  private void checkOpen() throws IllegalStateException {
     checkState(isOpen(), "This connection is not established!");
   }
 
+  /**
+   * Return whether {@code this} connection periodically {@link #checkLog() checks the log file}.
+   * <p>
+   * A connection is opened after construction or by calling {@link #open()}.<br>
+   * To {@link #isClosed() close} {@code this} connection call {@link #close()}.
+   *
+   * @return whether {@code this} connection is open
+   */
   public boolean isOpen() {
-    return executor != null && reader != null;
+    return executor != null && reader != null && logCheckFuture != null;
   }
 
+  /**
+   * Return whether {@code this} connection is not {@link #isOpen() open}.
+   * <p>
+   * A connection is closed by calling {@link #close()}.<br>
+   * To {@link #isOpen() open} {@code this} connection call {@link #open()}.
+   *
+   * @return whether {@code this} connection is open
+   */
+  public boolean isClosed() {
+    return !isOpen();
+  }
+
+  /**
+   * Return whether {@code this} connection {@link #isOpen()} and periodically performs a
+   * {@link #flush()}.
+   * <p>
+   * A connection is activated after {@link #open() opening} or by calling {@link #resume()}.<br>
+   * To {@link #isPaused() pause} {@code this} connection call {@link #pause()}.
+   *
+   * @return whether {@code this} connection is active
+   */
   public boolean isActive() {
-    return isOpen() && logCheckFuture != null && flushFuture != null;
+    return isOpen() && flushFuture != null;
   }
 
-  private void scheduleTasks() {
-    schedulePeriodicLogCheck();
-    schedulePeriodicFlush();
+  /**
+   * Return whether {@code this} connection {@link #isOpen()} but does not periodically perform a
+   * {@link #flush()}.
+   * <p>
+   * A connection is paused by calling {@link #pause()}.<br>
+   * To {@link #isActive() activate} {@code this} connection call {@link #resume()}.
+   *
+   * @return whether {@code this} connection is paused
+   */
+  public boolean isPaused() {
+    return isOpen() && !isActive();
   }
 
   private void schedulePeriodicLogCheck() {
@@ -225,11 +299,6 @@ public class InjectionConnection implements AutoCloseable {
         close();
       }
     }, 0, flushPeriod, flushTimeUnit);
-  }
-
-  private void cancelTasks() {
-    cancelPeriodicLogCheck();
-    cancelPeriodicFlush();
   }
 
   private void cancelPeriodicLogCheck() {
@@ -300,6 +369,13 @@ public class InjectionConnection implements AutoCloseable {
     }
   }
 
+  /**
+   * Check for new changes to the {@link #logFile} since the last check or alternatively since
+   * {@link #open() opening} {@code this} connection and dispatch new events.
+   * <p>
+   * If {@code this} connection {@link #isActive()} a log check will be performed periodically
+   * according to {@link #logCheckPeriod} and {@link #logCheckTimeUnit}.
+   */
   private void checkLog() {
     reader.readAddedLines(UTF_8, this::handleLogLine);
   }
@@ -322,10 +398,21 @@ public class InjectionConnection implements AutoCloseable {
     }
   }
 
+  /**
+   * Add the specified listener to be notified for every new line in the {@link #logFile}.
+   *
+   * @param listener
+   */
   public void addLogListener(Consumer<? super LogEvent> listener) {
     logListeners.add(listener);
   }
 
+  /**
+   * Remove the specified log listener.
+   *
+   * @param listener
+   * @return {@code true} if the specified listener was previously registered
+   */
   public boolean removeLogListener(Consumer<? super LogEvent> listener) {
     return logListeners.remove(listener);
   }
@@ -336,10 +423,22 @@ public class InjectionConnection implements AutoCloseable {
     }
   }
 
+  /**
+   * Add the specified listener to be notified whenever a chat event is detected in the
+   * {@link #logFile}.
+   *
+   * @param listener
+   */
   public void addChatListener(Consumer<? super ChatEvent> listener) {
     chatListeners.add(listener);
   }
 
+  /**
+   * Remove the specified chat listener.
+   *
+   * @param listener
+   * @return {@code true} if the specified listener was previously registered
+   */
   public boolean removeChatListener(Consumer<? super ChatEvent> listener) {
     return chatListeners.remove(listener);
   }
@@ -359,6 +458,15 @@ public class InjectionConnection implements AutoCloseable {
     successListeners.add(new SuccessListenerEntry(invoker, repeat, listener));
   }
 
+  /**
+   * Flush the contents of {@code this} connection by creating a new {@link Structure} file in the
+   * {@link #structureDir}.
+   * <p>
+   * If {@code this} connection {@link #isActive()} a flush will be performed periodically according
+   * to {@link #flushPeriod} and {@link #flushTimeUnit}.
+   *
+   * @throws IOException if an I/O error occures while creating the {@link Structure} file.
+   */
   public void flush() throws IOException {
     // Prevent concurrent adding of commands that require admin command logging
     // and synchronize the flush itself to prevent empty structures
