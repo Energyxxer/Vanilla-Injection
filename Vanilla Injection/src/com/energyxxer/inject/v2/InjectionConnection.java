@@ -10,13 +10,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -31,7 +30,6 @@ import com.energyxxer.inject.listeners.LogEvent;
 import com.energyxxer.inject.listeners.SuccessEvent;
 import com.energyxxer.inject.structures.StructureBlock;
 import com.energyxxer.inject.utils.LogFileReader;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterators;
 
 import de.adrodoc55.minecraft.coordinate.Coordinate3D;
@@ -89,17 +87,12 @@ public class InjectionConnection implements AutoCloseable {
     executor = Executors.newSingleThreadScheduledExecutor();
     reader = new LogFileReader(logFile);
     scheduleLogCheck();
-    CompletableFuture<Void> future = new CompletableFuture<>();
+    Semaphore semaphore = new Semaphore(0);
     // Any successful command will do
-    injectCommand("gamerule logAdminCommands true", e -> future.complete(null));
+    injectCommand("gamerule logAdminCommands true", e -> semaphore.release());
     flush();
     logger.info("Waiting for Minecraft's response");
-    try {
-      future.get();
-    } catch (ExecutionException ex) {
-      Throwables.throwIfUnchecked(ex.getCause());
-      throw new InternalError(ex.getCause());
-    }
+    semaphore.acquire();
     scheduleFlush();
     logger.info("Successfully established {}", this);
   }
