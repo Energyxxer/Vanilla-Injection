@@ -2,6 +2,9 @@ package de.adrodoc55.minecraft.structure;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -9,9 +12,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.annotation.Nullable;
 
+import com.evilco.mc.nbt.stream.NbtOutputStream;
 import com.evilco.mc.nbt.tag.ITag;
 import com.evilco.mc.nbt.tag.TagCompound;
 import com.evilco.mc.nbt.tag.TagDouble;
@@ -19,6 +24,7 @@ import com.evilco.mc.nbt.tag.TagInteger;
 import com.evilco.mc.nbt.tag.TagList;
 import com.evilco.mc.nbt.tag.TagString;
 import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 
 import de.adrodoc55.minecraft.coordinate.Coordinate3D;
 import de.adrodoc55.minecraft.coordinate.Coordinate3I;
@@ -209,6 +215,22 @@ public class Structure {
     ).reduce(Coordinate3I.getBinaryOperator(Math::max))//
         .map(c -> c.plus(new Coordinate3I(1, 1, 1)))//
         .orElse(new Coordinate3I());
+  }
+
+  /**
+   * Write the <a href="https://minecraft-de.gamepedia.com/NBT-Format">NBT</a> obtained by calling
+   * {@link #toNbt()} to the specified {@link File}.
+   *
+   * @param file the {@link File} to write to
+   * @throws IOException if an I/O error has occurred
+   */
+  public void writeTo(File file) throws IOException {
+    Files.createParentDirs(file);
+    TagCompound nbt = toNbt();
+    try (NbtOutputStream out =
+        new NbtOutputStream(new GZIPOutputStream(new FileOutputStream(file)))) {
+      out.write(nbt);
+    }
   }
 
   /**

@@ -1,7 +1,7 @@
 buildscript {
   repositories { jcenter() }
 
-  dependencies { classpath 'com.github.ben-manes:gradle-versions-plugin:0.13.0' }
+  dependencies { classpath 'com.github.ben-manes:gradle-versions-plugin:0.17.0' }
 }
 apply plugin: 'com.github.ben-manes.versions'
 
@@ -41,9 +41,11 @@ boolean isReleaseVersion() {
 // ----------------------------------------------------------------------------------------------------
 
 ext.libs = [
-  guava:          'com.google.guava:guava:19.0',
-  jsr305:         'com.google.code.findbugs:jsr305:3.0.1',
-  nbt:            'com.evilco.mc:nbt:1.0.2'
+  guava:          'com.google.guava:guava:23.0',
+  jsr305:         'com.google.code.findbugs:jsr305:3.0.2',
+  nbt:            'com.evilco.mc:nbt:1.0.2',
+  log4j_api:      'org.apache.logging.log4j:log4j-api:2.9.1',
+  log4j_core:     'org.apache.logging.log4j:log4j-core:2.9.1'
 ]
 
 // ----------------------------------------------------------------------------------------------------
@@ -106,4 +108,7 @@ dependencies {
 
   compile libs.guava
   compile libs.nbt
+  compile libs.log4j_api
+
+  runtime libs.log4j_core
 }
