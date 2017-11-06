@@ -735,6 +735,6 @@ public class InjectionConnection implements AutoCloseable {
 
   @Override
   public String toString() {
-    return "connection '" + identifier + "' to Minecraft world " + worldDir.getFileName();
+    return "connection '" + identifier + "' to Minecraft world '" + worldDir.getFileName() + "'";
   }
 }
