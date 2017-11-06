@@ -12,8 +12,12 @@ import com.evilco.mc.nbt.tag.TagString;
 
 import de.adrodoc55.minecraft.coordinate.Coordinate3I;
 import de.adrodoc55.minecraft.structure.Block;
+import de.adrodoc55.minecraft.structure.Structure;
 
 /**
+ * A Minecraft <a href="https://minecraft.gamepedia.com/Structure_Block">structure block</a> that
+ * can be added to a {@link Structure}.
+ *
  * @author Adrodoc55
  */
 public class StructureBlock implements Block {

@@ -52,6 +52,18 @@ import de.adrodoc55.minecraft.structure.SimpleBlockState;
 import de.adrodoc55.minecraft.structure.Structure;
 
 /**
+ * A connection to inject {@link Command}s to be executed by Minecraft and in return listen to
+ * Minecraft's {@link MinecraftLogObserver#logfile log file} by using a
+ * {@link MinecraftLogObserver}.
+ * <p>
+ * When first {@link #open() opening} a connection to Minecraft you need to place a
+ * <a href="https://minecraft.gamepedia.com/Structure_Block">structure block</a> and load the
+ * structure "inject/<i>{@link #identifier}</i>/0" where <i>{@link #identifier}</i> is the
+ * {@link #identifier} of the connection.<br>
+ * <b>Make sure to set "Include entities" to "ON".</b><br>
+ * Once the structure is in place and loaded an {@link InjectionConnection} can automatically
+ * reconnect without additional player interaction.
+ *
  * @author Adrodoc55
  */
 public class InjectionConnection implements AutoCloseable {
