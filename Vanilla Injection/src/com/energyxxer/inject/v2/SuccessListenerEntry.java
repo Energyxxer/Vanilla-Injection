@@ -6,6 +6,9 @@ import java.util.function.Consumer;
 
 import com.energyxxer.inject.listeners.SuccessEvent;
 
+/**
+ * @author Adrodoc55
+ */
 public class SuccessListenerEntry {
   private final String invoker;
   private final boolean repeat;

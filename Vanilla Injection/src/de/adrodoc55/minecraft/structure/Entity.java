@@ -5,7 +5,8 @@ import com.evilco.mc.nbt.tag.TagCompound;
 import de.adrodoc55.minecraft.coordinate.Coordinate3D;
 
 /**
- * A Minecraft {@link Entity} that can be added to a {@link Structure}.
+ * A Minecraft <a href="https://minecraft.gamepedia.com/Entity">entity</a> that can be added to a
+ * {@link Structure}.
  *
  * @author Adrodoc55
  */

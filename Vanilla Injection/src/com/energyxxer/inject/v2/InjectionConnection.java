@@ -1,9 +1,12 @@
 package com.energyxxer.inject.v2;
 
 import static com.energyxxer.inject.structures.StructureBlock.Mode.LOAD;
+import static com.energyxxer.inject.v2.CommandBlock.Type.CHAIN;
+import static com.energyxxer.inject.v2.CommandBlock.Type.REPEAT;
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static de.adrodoc55.minecraft.coordinate.Direction3.DOWN;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -55,6 +58,23 @@ import de.adrodoc55.minecraft.structure.Structure;
  * @author Adrodoc55
  */
 public class InjectionConnection implements AutoCloseable {
+  /**
+   * A command that is always successful and ideally does not disturb the player.
+   */
+  private static final String SUCCESSFUL_COMMAND = "gamerule logAdminCommands true";
+  /**
+   * See {@link #isTimedOut()}.
+   */
+  private static final int TIME_OUT_DELAY = 2;
+  /**
+   * See {@link #isTimedOut()}.
+   */
+  private static final int TIME_OUT_CHECK_FREQUENCY = 5;
+  /**
+   * See {@link #isTimedOut()}.
+   */
+  private static final int CONNECTION_TIME_OUT = TIME_OUT_DELAY * TIME_OUT_CHECK_FREQUENCY;
+
   private final Logger logger = LogManager.getLogger();
 
   /**
@@ -74,8 +94,8 @@ public class InjectionConnection implements AutoCloseable {
    */
   private final String identifier;
   /**
-   * The structure directory of the Minecraft world. This is a subdirectory of {@link #worldDir}
-   * called "structures".
+   * The {@link Structure} directory of the Minecraft world. This is a subdirectory of
+   * {@link #worldDir} called "structures".
    */
   private final Path structureDir;
   /**
@@ -127,6 +147,17 @@ public class InjectionConnection implements AutoCloseable {
    * also persisted in the {@link #dataFile}.
    */
   private final AtomicInteger structureId = new AtomicInteger();
+
+  /**
+   * ID of the last {@link Structure} file known to be loaded by Minecraft. This is used to
+   * determine whether {@code this} connection {@link #isTimedOut()}.
+   * <p>
+   * This is initialized during {@link #open()} when a connection is successfully established.
+   * Afterwards this is updated for every {@value #TIME_OUT_CHECK_FREQUENCY} structures that were
+   * loaded by Minecraft, because after every {@value #TIME_OUT_CHECK_FREQUENCY} {@link #flush()}
+   * operations a timeout check is injected by {@link #injectTimeoutCheckIfNeccessary(int)}.<br>
+   */
+  private int lastConfirmedStructureId;
 
   /**
    * This flag indicates whether or not the next flush operation should generate commands that if
@@ -197,14 +228,18 @@ public class InjectionConnection implements AutoCloseable {
   public void open() throws IOException, InterruptedException {
     checkState(!isOpen(), "This connection is already established!");
     logger.info("Establishing {}", this);
-    initStructureId();
-    logger.info("Using structure '{}'", getStructureName(structureId.get()));
+    lockDataFile();
+    int structureId = loadStructureId();
+    this.structureId.set(structureId);
+    logger.info("Using structure '{}'", getStructureName(structureId));
     executor = Executors.newSingleThreadScheduledExecutor();
     reader = new LogFileReader(logFile);
     schedulePeriodicLogCheck();
     Semaphore semaphore = new Semaphore(0);
-    // Any successful command will do
-    injectCommand("gamerule logAdminCommands true", e -> semaphore.release());
+    injectCommand(SUCCESSFUL_COMMAND, e -> {
+      lastConfirmedStructureId = structureId;
+      semaphore.release();
+    });
     flush();
     logger.info("Waiting for Minecraft's response");
     semaphore.acquire();
@@ -213,12 +248,14 @@ public class InjectionConnection implements AutoCloseable {
   }
 
   /**
-   * Initialize {@link #structureId} and lock {@link #dataFile} to ensure {@code this} is the only
-   * connection with {@link #identifier} for {@link #worldDir}.
+   * Lock {@link #dataFile} to ensure {@code this} is the only connection with {@link #identifier}
+   * for {@link #worldDir}.
    *
+   * @throws IllegalStateException if a different connection with {@link #identifier} is already
+   *         {@link #isOpen() open} for {@link #worldDir}
    * @throws IOException if an I/O error occurs while locking the {@link #dataFile}
    */
-  private void initStructureId() throws IOException {
+  private void lockDataFile() throws IllegalStateException, IOException {
     Files.createParentDirs(dataFile.toFile());
     dataFileChannel = FileChannel.open(dataFile, READ, WRITE, CREATE);
     try {
@@ -228,17 +265,27 @@ public class InjectionConnection implements AutoCloseable {
     } catch (OverlappingFileLockException ex) {
       failedToAquireDataFileLock(ex);
     }
-    ByteBuffer buffer = ByteBuffer.allocate(Ints.checkedCast(dataFileChannel.size()));
-    dataFileChannel.read(buffer);
-    String fileContent = new String(buffer.array(), Charsets.UTF_8);
-    structureId.set(Integers.parseInt(fileContent));
   }
 
   private void failedToAquireDataFileLock(@Nullable OverlappingFileLockException ex)
-      throws IOException {
+      throws IllegalStateException, IOException {
     dataFileChannel.close();
     dataFileChannel = null;
     throw new IllegalStateException("A " + this + " is already open", ex);
+  }
+
+  /**
+   * Load the value for {@link #structureId} from {@link #dataFile} .
+   *
+   * @return the value for {@link #structureId}
+   *
+   * @throws IOException if an I/O error occurs while reading {@link #dataFile}
+   */
+  private int loadStructureId() throws IOException {
+    ByteBuffer buffer = ByteBuffer.allocate(Ints.checkedCast(dataFileChannel.size()));
+    dataFileChannel.read(buffer);
+    String fileContent = new String(buffer.array(), Charsets.UTF_8);
+    return Integers.parseInt(fileContent);
   }
 
   @Override
@@ -360,7 +407,12 @@ public class InjectionConnection implements AutoCloseable {
   private void schedulePeriodicFlush() {
     flushFuture = executor.scheduleAtFixedRate(() -> {
       try {
-        flush();
+        if (isTimedOut()) {
+          logger.warn("Connection timed out ({})", this);
+          pause();
+        } else {
+          flush();
+        }
       } catch (IOException ex) {
         logger.error("Periodic flush encountered an error, closing " + this, ex);
         try {
@@ -541,62 +593,109 @@ public class InjectionConnection implements AutoCloseable {
    */
   public void flush() throws IllegalStateException, IOException {
     checkOpen();
-    // Prevent concurrent adding of commands that require admin command logging
-    // and synchronize the flush itself to prevent empty structures
+    // WriteLock to prevent concurrent adding of commands that require admin command logging
+    // AND synchronize the flush itself to prevent empty structures
     logAdminCommandsLock.writeLock().lock();
-    if (commandBuffer.isEmpty()) {
-      logAdminCommandsLock.writeLock().unlock();
-      logger.trace("Skipping flush due to empty buffer");
-      return;
-    }
-    Structure structure = new Structure(922, "Vanilla-Injection");
-    boolean logAdminCommands = this.logAdminCommands;
+    boolean logAdminCommands = this.logAdminCommands; // This copy is used after releasing the lock
+    int structureId; // Don't use this.structureId.get(), because that can be modified concurrently
+    Structure structure;
     try {
+      if (commandBuffer.isEmpty()) {
+        logger.trace("Skipping flush due to empty buffer");
+        return;
+      }
+      // StructureId is only incremented if a structure is actually generated
+      structureId = this.structureId.getAndIncrement();
+      structure = new Structure(922, "Vanilla-Injection");
+      injectTimeoutCheckIfNeccessary(structureId);
       if (logAdminCommands) {
-        structure.addEntity(newCommandBlockMinecart("gamerule logAdminCommands true"));
+        structure.addEntity(newCommandBlockMinecart(structureId, "gamerule logAdminCommands true"));
       }
       Iterators.consumingIterator(commandBuffer.iterator()).forEachRemaining(command -> {
-        structure.addEntity(newCommandBlockMinecart(command));
+        structure.addEntity(newCommandBlockMinecart(structureId, command));
       });
       this.logAdminCommands = false;
     } finally {
+      // commandBuffer no longer contains comands that require admin command loggig, releasing lock
       logAdminCommandsLock.writeLock().unlock();
     }
     if (logAdminCommands) {
-      structure.addEntity(newCommandBlockMinecart("gamerule logAdminCommands false"));
+      structure.addEntity(newCommandBlockMinecart(structureId, "gamerule logAdminCommands false"));
     }
-    structure.addEntity(newCommandBlockMinecart("kill @e[type=commandblock_minecart,dy=0]"));
+    structure.addEntity(newCommandBlockMinecart(structureId,
+        "kill @e[type=commandblock_minecart,dy=0,tag=" + getStructureName(structureId) + "]"));
 
-    // This synchronization is only needed to avoid incementing in case of an exception
-    synchronized (structureId) {
-      int structureId = this.structureId.getAndIncrement();
-      try {
-        structure.addBlock(
-            new StructureBlock(new Coordinate3I(), LOAD, getStructureName(structureId + 1)));
-        structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Coordinate3I(0, 0, 2)));
-        structure.addBlock(new SimpleBlock("minecraft:activator_rail", new Coordinate3I(0, 1, 2)));
-        structure.setBackground(new SimpleBlockState("minecraft:air"));
+    structure.addBlock(
+        new StructureBlock(new Coordinate3I(0, 0, 0), LOAD, getStructureName(structureId + 1)));
+    structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Coordinate3I(0, 2, 0)));
+    structure.addBlock(new SimpleBlock("minecraft:activator_rail", new Coordinate3I(0, 3, 0)));
 
-        structure.writeTo(structureDir.resolve(getStructureName(structureId) + ".nbt").toFile());
-      } catch (RuntimeException | IOException ex) {
-        // If the injection fails do not increment the ID
-        this.structureId.decrementAndGet();
-        throw ex;
-      }
-      dataFileChannel.position(0);
-      dataFileChannel.write(Charsets.UTF_8.encode(String.valueOf(structureId + 1)));
-      dataFileChannel.truncate(dataFileChannel.position());
+    structure.addBlock(new CommandBlock("setblock ~ ~-1 ~ stone", new Coordinate3I(0, 1, 1), DOWN,
+        CHAIN, false, true));
+    structure.addBlock(new CommandBlock("setblock ~ ~-2 ~ redstone_block",
+        new Coordinate3I(0, 2, 1), DOWN, REPEAT, false, false));
+
+    structure.setBackground(new SimpleBlockState("minecraft:air"));
+
+    structure.writeTo(structureDir.resolve(getStructureName(structureId) + ".nbt").toFile());
+    persistStructureId(structureId);
+  }
+
+  private static final Coordinate3D MINECART_POS = new Coordinate3D(0.5, 3.0625, 0.5);
+
+  private CommandBlockMinecart newCommandBlockMinecart(int structureId, String command) {
+    return newCommandBlockMinecart(structureId, new Command(command));
+  }
+
+  private CommandBlockMinecart newCommandBlockMinecart(int structureId, Command command) {
+    CommandBlockMinecart result = new CommandBlockMinecart(command, MINECART_POS);
+    result.addTag(getStructureName(structureId));
+    return result;
+  }
+
+  /**
+   * Determines whether {@code this} connection is timed out.
+   * <p>
+   * When a timeout is detected during periodic {@link #flush() flushing} {@code this} connection is
+   * {@link #pause() paused}.
+   * <p>
+   * A connection is considered to be timed out when the {@link Structure}s of neither of the
+   * previous {@value #TIME_OUT_DELAY} {@link #flush()} operations that injected a
+   * {@link #injectTimeoutCheckIfNeccessary(int) timeout check} have been loaded by Minecraft. Every
+   * {@value #TIME_OUT_CHECK_FREQUENCY} {@link #flush()} operations inject a
+   * {@link #injectTimeoutCheckIfNeccessary(int) timeout check}, so a connection will not time out
+   * before AT LEAST {@value #CONNECTION_TIME_OUT} {@link Structure}s were not loaded by Minecraft.
+   *
+   * @return whether {@code this} connection is timed out
+   */
+  private boolean isTimedOut() {
+    return lastConfirmedStructureId != -1
+        && structureId.get() > lastConfirmedStructureId + CONNECTION_TIME_OUT;
+  }
+
+  /**
+   * Injects a timout check every {@value #TIME_OUT_CHECK_FREQUENCY} {@link #flush()} operations. A
+   * timeout check is used to update {@link #lastConfirmedStructureId} once the structure is loaded
+   * by Minecraft.
+   *
+   * @param structureId
+   */
+  private void injectTimeoutCheckIfNeccessary(int structureId) {
+    if (structureId != 0 && structureId % TIME_OUT_CHECK_FREQUENCY == 0) {
+      injectCommand(SUCCESSFUL_COMMAND, e -> {
+        lastConfirmedStructureId = structureId;
+        if (isPaused() && !isTimedOut()) {
+          logger.warn("Connection is no longer timed out ({})", this);
+          resume();
+        }
+      });
     }
   }
 
-  private static final Coordinate3D MINECART_POS = new Coordinate3D(0.5, 1.0625, 2.5);
-
-  private static CommandBlockMinecart newCommandBlockMinecart(String command) {
-    return newCommandBlockMinecart(new Command(command));
-  }
-
-  private static CommandBlockMinecart newCommandBlockMinecart(Command command) {
-    return new CommandBlockMinecart(command, MINECART_POS);
+  private void persistStructureId(int structureId) throws IOException {
+    dataFileChannel.position(0);
+    dataFileChannel.write(Charsets.UTF_8.encode(String.valueOf(structureId + 1)));
+    dataFileChannel.truncate(dataFileChannel.position());
   }
 
   public void injectCommand(String command) {
@@ -615,9 +714,9 @@ public class InjectionConnection implements AutoCloseable {
   public void injectCommand(Command command, Consumer<SuccessEvent> listener) {
     logAdminCommandsLock.readLock().lock();
     try {
-      logAdminCommands = true;
       injectCommand(command);
       addSuccessListener(command.getName(), false, listener);
+      logAdminCommands = true;
     } finally {
       logAdminCommandsLock.readLock().unlock();
     }

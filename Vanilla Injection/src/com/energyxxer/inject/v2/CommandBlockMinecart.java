@@ -2,20 +2,24 @@ package com.energyxxer.inject.v2;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.energyxxer.inject.structures.CommandBlock;
-import com.evilco.mc.nbt.tag.ITag;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import com.evilco.mc.nbt.tag.TagCompound;
+import com.evilco.mc.nbt.tag.TagList;
 import com.evilco.mc.nbt.tag.TagString;
+import com.google.common.collect.Lists;
 
 import de.adrodoc55.minecraft.coordinate.Coordinate3D;
 import de.adrodoc55.minecraft.structure.Entity;
 import de.adrodoc55.minecraft.structure.Structure;
 
 /**
- * Class containing information about a command block minecart. Not to be confused with a
- * <code>CommandBlock</code>.
+ * A Minecraft <a href="https://minecraft.gamepedia.com/Minecart_with_Command_Block">command block
+ * minecart</a> that can be added to a {@link Structure}.
  *
- * @see CommandBlock
+ * @author Adrodoc55
  */
 public class CommandBlockMinecart implements Entity {
   private final Command command;
@@ -23,6 +27,7 @@ public class CommandBlockMinecart implements Entity {
    * The relative position of this {@link CommandBlockMinecart} within a {@link Structure}.
    */
   private final Coordinate3D coordinate;
+  private final List<String> tags = new ArrayList<>();
 
   public CommandBlockMinecart(Command command, Coordinate3D coordinate) {
     this.command = checkNotNull(command, "command == null!");
@@ -44,14 +49,26 @@ public class CommandBlockMinecart implements Entity {
     return coordinate;
   }
 
+  /**
+   * @return the value of {@link #tags}
+   */
+  public List<String> getTags() {
+    return Collections.unmodifiableList(tags);
+  }
+
+  public void addTag(String tag) {
+    tags.add(checkNotNull(tag, "tag == null!"));
+  }
+
+  public boolean removeTag(String tag) {
+    return tags.remove(checkNotNull(tag, "tag == null!"));
+  }
+
   @Override
   public TagCompound getNbt() {
-    TagCompound nbt = new TagCompound("nbt");
+    TagCompound nbt = command.toNbt();
     nbt.setTag(new TagString("id", "minecraft:commandblock_minecart"));
-    TagCompound commandNbt = command.toNbt();
-    for (ITag tag : commandNbt.getTags().values()) {
-      nbt.setTag(tag);
-    }
+    nbt.setTag(new TagList("Tags", Lists.transform(tags, tag -> new TagString("", tag))));
     return nbt;
   }
 
