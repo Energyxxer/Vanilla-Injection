@@ -147,17 +147,17 @@ public class InjectionConnection implements AutoCloseable {
    * also persisted in the {@link #dataFile}.
    */
   private final AtomicInteger structureId = new AtomicInteger();
-
   /**
-   * ID of the last {@link Structure} file known to be loaded by Minecraft. This is used to
-   * determine whether {@code this} connection {@link #isTimedOut()}.
+   * ID of the last {@link Structure} file known to be loaded by Minecraft or {@code -1} if
+   * {@code this} connection {@link #isClosed()}. This is used to determine whether {@code this}
+   * connection {@link #isTimedOut()}.
    * <p>
    * This is initialized during {@link #open()} when a connection is successfully established.
    * Afterwards this is updated for every {@value #TIME_OUT_CHECK_FREQUENCY} structures that were
    * loaded by Minecraft, because after every {@value #TIME_OUT_CHECK_FREQUENCY} {@link #flush()}
    * operations a timeout check is injected by {@link #injectTimeoutCheckIfNeccessary(int)}.<br>
    */
-  private int lastConfirmedStructureId;
+  private int lastConfirmedStructureId = -1;
 
   /**
    * This flag indicates whether or not the next flush operation should generate commands that if
@@ -687,7 +687,7 @@ public class InjectionConnection implements AutoCloseable {
    * @param structureId
    */
   private void injectTimeoutCheckIfNeccessary(int structureId) {
-    if (structureId != 0 && structureId % TIME_OUT_CHECK_FREQUENCY == 0) {
+    if (lastConfirmedStructureId != -1 && structureId % TIME_OUT_CHECK_FREQUENCY == 0) {
       injectCommand(SUCCESSFUL_COMMAND, e -> {
         lastConfirmedStructureId = structureId;
         if (isPaused() && !isTimedOut()) {
