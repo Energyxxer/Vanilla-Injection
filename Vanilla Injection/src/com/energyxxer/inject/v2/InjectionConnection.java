@@ -75,7 +75,7 @@ public class InjectionConnection implements AutoCloseable {
    */
   private static final int CONNECTION_TIME_OUT = TIME_OUT_DELAY * TIME_OUT_CHECK_FREQUENCY;
 
-  private final Logger logger = LogManager.getLogger();
+  private final Logger logger;
 
   /**
    * The log file of the Minecraft installation. Note that when using multiple instances of
@@ -205,6 +205,7 @@ public class InjectionConnection implements AutoCloseable {
     this.logFile = checkNotNull(logFile, "logFile == null!");
     this.worldDir = checkNotNull(worldDir, "worldDir == null!");
     this.identifier = checkNotNull(identifier, "identifier == null!");
+    logger = LogManager.getLogger(toString());
     structureDir = worldDir.resolve("structures");
     injectionDir = structureDir.resolve("inject").resolve(identifier);
     dataFile = injectionDir.resolve("data.txt");
@@ -227,7 +228,7 @@ public class InjectionConnection implements AutoCloseable {
    */
   public void open() throws IOException, InterruptedException {
     checkState(!isOpen(), "This connection is already established!");
-    logger.info("Establishing {}", this);
+    logger.info("Establishing connection");
     lockDataFile();
     int structureId = loadStructureId();
     this.structureId.set(structureId);
@@ -244,7 +245,7 @@ public class InjectionConnection implements AutoCloseable {
     logger.info("Waiting for Minecraft's response");
     semaphore.acquire();
     schedulePeriodicFlush();
-    logger.info("Successfully established {}", this);
+    logger.info("Successfully established connection");
   }
 
   /**
@@ -292,7 +293,7 @@ public class InjectionConnection implements AutoCloseable {
   public void close() throws IOException {
     // TODO Adrodoc55 04.11.2017: Flush on close?
     if (isOpen()) {
-      logger.info("Closing {}", this);
+      logger.info("Closing connection");
       if (isActive()) {
         cancelPeriodicFlush();
       }
@@ -343,7 +344,7 @@ public class InjectionConnection implements AutoCloseable {
     if (!isActive()) {
       return false;
     }
-    logger.info("Pausing {}", this);
+    logger.info("Pausing connection");
     cancelPeriodicFlush();
     return true;
   }
@@ -361,7 +362,7 @@ public class InjectionConnection implements AutoCloseable {
     if (isActive()) {
       return false;
     }
-    logger.info("Resuming {}", this);
+    logger.info("Resuming connection");
     schedulePeriodicFlush();
     return true;
   }
@@ -408,13 +409,13 @@ public class InjectionConnection implements AutoCloseable {
     flushFuture = executor.scheduleAtFixedRate(() -> {
       try {
         if (isTimedOut()) {
-          logger.warn("Connection timed out ({})", this);
+          logger.warn("Connection timed out");
           pause();
         } else {
           flush();
         }
       } catch (IOException ex) {
-        logger.error("Periodic flush encountered an error, closing " + this, ex);
+        logger.error("Periodic flush encountered an error, closing connection", ex);
         try {
           close();
         } catch (IOException ex2) {
@@ -685,7 +686,7 @@ public class InjectionConnection implements AutoCloseable {
       injectCommand(SUCCESSFUL_COMMAND, e -> {
         lastConfirmedStructureId = structureId;
         if (isPaused() && !isTimedOut()) {
-          logger.warn("Connection is no longer timed out ({})", this);
+          logger.warn("Connection is no longer timed out");
           resume();
         }
       });
@@ -724,6 +725,6 @@ public class InjectionConnection implements AutoCloseable {
 
   @Override
   public String toString() {
-    return "connection '" + identifier + "' to Minecraft world: " + worldDir;
+    return "connection '" + identifier + "' to Minecraft world " + worldDir.getFileName();
   }
 }
