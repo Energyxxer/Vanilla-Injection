@@ -473,7 +473,7 @@ public class InjectionConnection implements AutoCloseable {
   public void setLogCheckFrequency(long logCheckPeriod, TimeUnit logCheckTimeUnit) {
     this.logCheckPeriod = logCheckPeriod;
     this.logCheckTimeUnit = checkNotNull(logCheckTimeUnit, "logCheckTimeUnit == null!");
-    if (isActive()) {
+    if (logCheckFuture != null) { // isOpen()
       cancelPeriodicLogCheck();
       schedulePeriodicLogCheck();
     }
@@ -502,7 +502,7 @@ public class InjectionConnection implements AutoCloseable {
   public void setFlushFrequency(long flushPeriod, TimeUnit flushTimeUnit) {
     this.flushPeriod = flushPeriod;
     this.flushTimeUnit = checkNotNull(flushTimeUnit, "flushTimeUnit == null!");
-    if (isActive()) {
+    if (flushFuture != null) { // isActive()
       cancelPeriodicFlush();
       schedulePeriodicFlush();
     }
