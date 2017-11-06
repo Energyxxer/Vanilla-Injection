@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -222,6 +223,10 @@ public class InjectionConnection implements AutoCloseable {
     return result.replace('\\', '/');
   }
 
+  private Path getStructureFile(int structureId) {
+    return structureDir.resolve(getStructureName(structureId) + ".nbt");
+  }
+
   /**
    * {@link #isOpen() Open} {@code this} connection and wait for a response from Minecraft. Once the
    * response is received, {@link #isActive() activate} {@code this} connection.
@@ -243,7 +248,7 @@ public class InjectionConnection implements AutoCloseable {
     schedulePeriodicLogCheck();
     Semaphore semaphore = new Semaphore(0);
     injectCommand(SUCCESSFUL_COMMAND, e -> {
-      lastConfirmedStructureId = structureId;
+      confirmStructure(structureId);
       semaphore.release();
     });
     flush();
@@ -648,7 +653,7 @@ public class InjectionConnection implements AutoCloseable {
 
     structure.setBackground(new SimpleBlockState("minecraft:air"));
 
-    structure.writeTo(structureDir.resolve(getStructureName(structureId) + ".nbt").toFile());
+    structure.writeTo(getStructureFile(structureId).toFile());
     persistStructureId(structureId);
   }
 
@@ -694,13 +699,37 @@ public class InjectionConnection implements AutoCloseable {
   private void injectTimeoutCheckIfNeccessary(int structureId) {
     if (lastConfirmedStructureId != -1 && structureId % TIME_OUT_CHECK_FREQUENCY == 0) {
       injectCommand(SUCCESSFUL_COMMAND, e -> {
-        lastConfirmedStructureId = structureId;
+        confirmStructure(structureId);
         if (isPaused() && !isTimedOut()) {
           logger.warn("Connection is no longer timed out");
           resume();
         }
       });
     }
+  }
+
+  /**
+   * Update {@link #lastConfirmedStructureId} and delete old {@link Structure} files.
+   *
+   * @param structureId the ID of the new {@link #lastConfirmedStructureId}
+   */
+  private void confirmStructure(int structureId) {
+    int i;
+    if (lastConfirmedStructureId < 0) {
+      i = structureId - TIME_OUT_CHECK_FREQUENCY;
+    } else {
+      i = lastConfirmedStructureId;
+    }
+    logger.debug("cleaning up old structure files, ID {} up to {}", i, structureId);
+    for (; i <= structureId; i++) {
+      Path structureFile = getStructureFile(i);
+      try {
+        Files.deleteIfExists(structureFile);
+      } catch (IOException ex) {
+        logger.warn("Failed to clean up old structure file", ex);
+      }
+    }
+    lastConfirmedStructureId = structureId;
   }
 
   private void persistStructureId(int structureId) throws IOException {
