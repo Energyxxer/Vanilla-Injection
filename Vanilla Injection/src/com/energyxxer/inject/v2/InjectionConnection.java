@@ -270,9 +270,13 @@ public class InjectionConnection implements AutoCloseable {
 
   private void failedToAquireDataFileLock(@Nullable OverlappingFileLockException ex)
       throws IllegalStateException, IOException {
+    closeDataFileChannel();
+    throw new IllegalStateException("A " + this + " is already open", ex);
+  }
+
+  private void closeDataFileChannel() throws IOException {
     dataFileChannel.close();
     dataFileChannel = null;
-    throw new IllegalStateException("A " + this + " is already open", ex);
   }
 
   /**
@@ -291,7 +295,6 @@ public class InjectionConnection implements AutoCloseable {
 
   @Override
   public void close() throws IOException {
-    // TODO Adrodoc55 04.11.2017: Flush on close?
     if (isOpen()) {
       logger.info("Closing connection");
       if (isActive()) {
@@ -301,7 +304,9 @@ public class InjectionConnection implements AutoCloseable {
       executor.shutdown();
       executor = null;
       reader = null;
-      dataFileChannel.close();
+      lastConfirmedStructureId = -1;
+      flush();
+      closeDataFileChannel();
     }
   }
 
