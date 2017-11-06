@@ -4,9 +4,13 @@ import static com.energyxxer.inject.structures.StructureBlock.Mode.LOAD;
 import static com.energyxxer.inject.v2.CommandBlock.Type.CHAIN;
 import static com.energyxxer.inject.v2.CommandBlock.Type.REPEAT;
 import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.io.Files.createParentDirs;
 import static de.adrodoc55.minecraft.coordinate.Direction3.DOWN;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.isRegularFile;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -45,7 +49,6 @@ import com.energyxxer.inject.structures.StructureBlock;
 import com.energyxxer.inject.utils.LogFileReader;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Iterators;
-import com.google.common.io.Files;
 import com.google.common.primitives.Ints;
 
 import de.adrodoc55.minecraft.coordinate.Coordinate3D;
@@ -204,6 +207,8 @@ public class InjectionConnection implements AutoCloseable {
       throws IOException, InterruptedException {
     this.logFile = checkNotNull(logFile, "logFile == null!");
     this.worldDir = checkNotNull(worldDir, "worldDir == null!");
+    checkArgument(isRegularFile(logFile), "%s is not a regular file!", logFile);
+    checkArgument(isDirectory(worldDir), "%s is not a directory!", worldDir);
     this.identifier = checkNotNull(identifier, "identifier == null!");
     logger = LogManager.getLogger(toString());
     structureDir = worldDir.resolve("structures");
@@ -257,7 +262,7 @@ public class InjectionConnection implements AutoCloseable {
    * @throws IOException if an I/O error occurs while locking the {@link #dataFile}
    */
   private void lockDataFile() throws IllegalStateException, IOException {
-    Files.createParentDirs(dataFile.toFile());
+    createParentDirs(dataFile.toFile());
     dataFileChannel = FileChannel.open(dataFile, READ, WRITE, CREATE);
     try {
       if (dataFileChannel.tryLock() == null) {
