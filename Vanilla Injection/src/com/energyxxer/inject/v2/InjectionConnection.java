@@ -140,7 +140,7 @@ public class InjectionConnection implements AutoCloseable {
    * This is initialized during {@link #open()} when a connection is successfully established.
    * Afterwards this is updated for every {@value #TIME_OUT_CHECK_FREQUENCY} structures that were
    * loaded by Minecraft, because after every {@value #TIME_OUT_CHECK_FREQUENCY} {@link #flush()}
-   * operations a timeout check is injected by {@link #injectTimeoutCheckIfNeccessary(int)}.<br>
+   * operations a timeout check is injected by {@link #injectTimeoutCheckIfNeccessary(int)}.
    */
   private int lastConfirmedStructureId = -1;
 
@@ -160,13 +160,14 @@ public class InjectionConnection implements AutoCloseable {
    * Adding such commands is considered to be the read operation, because multiple commands may be
    * added concurrently.<br>
    * Flushing is considered to be the write operation, because while flushing you may not add such a
-   * command:
+   * command or you might end up with one of the following scenarios:
    * <ul>
    * <li>If such a command is first added during a {@link #flush()} then it might be added to the
-   * {@link Structure} even though the preparation to enable logging has not.</li>
+   * {@link Structure} even though the preparation to enable logging was not added.</li>
    * <li>If such a command is added during a {@link #flush()} then the flag
    * {@link #logAdminCommands} might be set to {@code false} by the {@link #flush()} operation even
-   * though the command might not have been added to the {@link Structure}.</li>
+   * though the command might not have been added to the {@link Structure} and was instead added to
+   * {@link #commandBuffer}.</li>
    * </ul>
    */
   private final ReadWriteLock logAdminCommandsLock = new ReentrantReadWriteLock();
