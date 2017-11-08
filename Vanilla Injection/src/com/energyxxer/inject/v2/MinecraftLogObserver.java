@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,6 +32,7 @@ import com.energyxxer.inject.utils.LogFileReader;
 /**
  * @author Adrodoc55
  */
+@ThreadSafe
 public class MinecraftLogObserver implements AutoCloseable {
   private final Logger logger = LogManager.getLogger();
 
@@ -87,7 +89,7 @@ public class MinecraftLogObserver implements AutoCloseable {
    *
    * @throws IOException if an I/O error occurs while opening the {@link #logFile}
    */
-  public void open() throws IOException {
+  public synchronized void open() throws IOException {
     if (isClosed()) {
       logger.info("Opening log observer");
       reader = new LogFileReader(logFile);
@@ -100,7 +102,7 @@ public class MinecraftLogObserver implements AutoCloseable {
    * Stop observing the {@link #logFile} for changes if {@code this} observer {@link #isOpen()}.
    */
   @Override
-  public void close() {
+  public synchronized void close() {
     if (isOpen()) {
       logger.info("Closing log observer");
       cancelPeriodicLogCheck();
@@ -146,10 +148,10 @@ public class MinecraftLogObserver implements AutoCloseable {
    * @param logCheckPeriod the new value for {@link #logCheckPeriod}
    * @param logCheckTimeUnit the new value for {@link #logCheckTimeUnit}
    */
-  public void setLogCheckFrequency(long logCheckPeriod, TimeUnit logCheckTimeUnit) {
+  public synchronized void setLogCheckFrequency(long logCheckPeriod, TimeUnit logCheckTimeUnit) {
     this.logCheckPeriod = logCheckPeriod;
     this.logCheckTimeUnit = checkNotNull(logCheckTimeUnit, "logCheckTimeUnit == null!");
-    if (logCheckFuture != null) { // isOpen()
+    if (isOpen()) {
       cancelPeriodicLogCheck();
       schedulePeriodicLogCheck();
     }

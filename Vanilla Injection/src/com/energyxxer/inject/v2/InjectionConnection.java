@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +53,7 @@ import de.adrodoc55.minecraft.structure.Structure;
  *
  * @author Adrodoc55
  */
+@ThreadSafe
 public class InjectionConnection implements AutoCloseable {
   /**
    * A command that is always successful and ideally does not disturb the player.
@@ -179,7 +181,7 @@ public class InjectionConnection implements AutoCloseable {
    * @throws InterruptedException if the current thread is interrupted while waiting for Minecraft's
    *         response
    */
-  public void open() throws IOException, InterruptedException {
+  public synchronized void open() throws IOException, InterruptedException {
     if (isClosed()) {
       logger.info("Establishing connection");
       lockDataFile();
@@ -243,8 +245,7 @@ public class InjectionConnection implements AutoCloseable {
   /**
    * Save the specified value of {@link #structureId} to {@link #dataFile}.
    *
-   * @param structureId the value of {@link #structureId} (this is a parameter instead of
-   *        {@code this.structirId.get()} due to concurrency)
+   * @param structureId the value of {@link #structureId}
    * @throws IOException if an I/O error occurs while writing to {@link #dataFile}
    */
   private void saveStructureId(int structureId) throws IOException {
@@ -254,7 +255,7 @@ public class InjectionConnection implements AutoCloseable {
   }
 
   @Override
-  public void close() throws IOException {
+  public synchronized void close() throws IOException {
     if (isOpen()) {
       logger.info("Closing connection");
       lastConfirmedStructureId = -1;
@@ -303,7 +304,7 @@ public class InjectionConnection implements AutoCloseable {
    *
    * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
    */
-  public void pause() throws IllegalStateException {
+  public synchronized void pause() throws IllegalStateException {
     checkOpen();
     if (isActive()) {
       logger.info("Pausing connection");
@@ -317,7 +318,7 @@ public class InjectionConnection implements AutoCloseable {
    *
    * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
    */
-  public void resume() throws IllegalStateException {
+  public synchronized void resume() throws IllegalStateException {
     checkOpen();
     if (isPaused()) {
       logger.info("Resuming connection");
@@ -403,7 +404,7 @@ public class InjectionConnection implements AutoCloseable {
    * @param flushPeriod the new value for {@link #flushPeriod}
    * @param flushTimeUnit the new value for {@link #flushTimeUnit}
    */
-  public void setFlushFrequency(long flushPeriod, TimeUnit flushTimeUnit) {
+  public synchronized void setFlushFrequency(long flushPeriod, TimeUnit flushTimeUnit) {
     this.flushPeriod = flushPeriod;
     this.flushTimeUnit = checkNotNull(flushTimeUnit, "flushTimeUnit == null!");
     if (isActive()) {
@@ -422,20 +423,18 @@ public class InjectionConnection implements AutoCloseable {
    * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
    * @throws IOException if an I/O error occurs while creating the {@link Structure} file
    */
-  public void flush() throws IllegalStateException, IOException {
+  public synchronized void flush() throws IllegalStateException, IOException {
     checkOpen();
     int structureId;
-    synchronized (this.structureId) { // Synchronized incrementing of structureId
-      structureId = this.structureId.get();
-      injectTimeoutCheckIfNeccessary(structureId);
-      Structure structure = injectionBuffer.createStructure(structureId);
-      if (structure == null) {
-        return;
-      }
-      structure.writeTo(getStructureFile(structureId).toFile());
-      // Don't increment if no structure was written
-      this.structureId.incrementAndGet();
+    structureId = this.structureId.get();
+    injectTimeoutCheckIfNeccessary(structureId);
+    Structure structure = injectionBuffer.createStructure(structureId);
+    if (structure == null) {
+      return;
     }
+    structure.writeTo(getStructureFile(structureId).toFile());
+    // Don't increment if no structure was written
+    this.structureId.incrementAndGet();
     saveStructureId(structureId);
   }
 
