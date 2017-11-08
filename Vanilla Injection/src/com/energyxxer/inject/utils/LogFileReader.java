@@ -17,13 +17,13 @@ import java.util.function.Consumer;
  * call to {@link #readAddedLines(Charset, Consumer)} or alternatively the construction of the
  * {@link LogFileReader}.
  * <p>
- * To function properly the {@link #logFile} must use {@link System#lineSeparator()} as it's line
- * seperator and every line must be terminated by a line seperator. Otherwise the file content would
- * be shorter than expected which is considered to be a log file rotation.<br>
- * These two requirements are met by Minecraft's log file.
+ * To function properly every line in the {@link #logFile} must be terminated by a line seperator.
+ * Otherwise a line might be cut in half if content is added to the last line between calls to
+ * {@link #readAddedLines(Charset, Consumer)}.<br>
+ * This requirement is met by Minecraft's {@link #logFile}.
  * <p>
- * A {@link LogFileReader} can properly handle log file rotation (for instance when Minecraft is
- * restarted) and does not lock the log file.
+ * A {@link LogFileReader} does not lock the {@link #logFile} and can properly handle log file
+ * rotation (for instance when Minecraft is restarted).
  *
  * @author Adrodoc55
  */
@@ -54,24 +54,20 @@ public class LogFileReader {
   public void readAddedLines(Charset charset, Consumer<String> lineConsumer) {
     try (// Open file without locking it
         InputStream is = Files.newInputStream(logFile, StandardOpenOption.READ);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is, charset));) {
-      if (bytesRead > Files.size(logFile)) {
-        handleLogFileRotation();
-      } else { // Skip previously read lines
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is, charset))) {
+      long logFileSize = Files.size(logFile);
+      // Skip previously read bytes if there was no log file rotation
+      if (bytesRead <= logFileSize) {
         is.skip(bytesRead);
       }
+      bytesRead = logFileSize;
       String line;
       while ((line = reader.readLine()) != null) {
-        // Every line in the log file must be terminated by a line separator
-        bytesRead += line.getBytes(charset).length + System.lineSeparator().length();
         lineConsumer.accept(line);
       }
     } catch (IOException ex) {
-      handleLogFileRotation();
+      // Log file rotation
+      bytesRead = 0;
     }
-  }
-
-  private void handleLogFileRotation() {
-    bytesRead = 0;
   }
 }
