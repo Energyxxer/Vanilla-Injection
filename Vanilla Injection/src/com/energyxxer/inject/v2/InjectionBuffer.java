@@ -32,7 +32,7 @@ import de.adrodoc55.minecraft.structure.Structure;
  */
 @ThreadSafe
 class InjectionBuffer {
-  private final Logger logger = LogManager.getLogger();
+  private static final Logger LOGGER = LogManager.getLogger();
 
   /**
    * The function to convert the {@code structureId} parameter of {@link #createStructure(int)} into
@@ -112,9 +112,10 @@ class InjectionBuffer {
     Structure structure;
     try {
       if (isEmpty()) {
-        logger.trace("Skipping creation of structure {} due to empty buffer", structureId);
+        LOGGER.trace("Skipping creation of structure {} due to empty buffer", structureId);
         return null;
       }
+      LOGGER.debug("Creating structure from commands {}", commands);
       structure = new Structure(922, "Vanilla-Injection");
       if (logAdminCommands) {
         structure.addEntity(newCommandBlockMinecart(structureId, "gamerule logAdminCommands true"));

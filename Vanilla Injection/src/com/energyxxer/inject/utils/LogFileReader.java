@@ -12,6 +12,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * A {@link LogFileReader} is used to read new lines that have been added to a file since the last
  * call to {@link #readAddedLines(Charset, Consumer)} or alternatively the construction of the
@@ -28,6 +31,8 @@ import java.util.function.Consumer;
  * @author Adrodoc55
  */
 public class LogFileReader {
+  private static final Logger LOGGER = LogManager.getLogger();
+
   private final Path logFile;
   private long bytesRead;
 
@@ -59,6 +64,8 @@ public class LogFileReader {
       // Skip previously read bytes if there was no log file rotation
       if (bytesRead <= logFileSize) {
         is.skip(bytesRead);
+      } else {
+        LOGGER.info("Detected log file rotation due to change in log file size");
       }
       bytesRead = logFileSize;
       String line;
@@ -66,6 +73,7 @@ public class LogFileReader {
         lineConsumer.accept(line);
       }
     } catch (IOException ex) {
+      LOGGER.info("Interpreting exception as a log file rotation", ex);
       // Log file rotation
       bytesRead = 0;
     }

@@ -329,7 +329,7 @@ public class InjectionConnection implements AutoCloseable {
   /**
    * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
    */
-  private void checkOpen() throws IllegalStateException {
+  private synchronized void checkOpen() throws IllegalStateException {
     checkState(isOpen(), "This connection is not established!");
   }
 

@@ -34,7 +34,7 @@ import com.energyxxer.inject.utils.LogFileReader;
  */
 @ThreadSafe
 public class MinecraftLogObserver implements AutoCloseable {
-  private final Logger logger = LogManager.getLogger();
+  private static final Logger LOGGER = LogManager.getLogger();
 
   /**
    * The log file of the Minecraft installation. Note that when using multiple instances of
@@ -91,7 +91,7 @@ public class MinecraftLogObserver implements AutoCloseable {
    */
   public synchronized void open() throws IOException {
     if (isClosed()) {
-      logger.info("Opening log observer");
+      LOGGER.info("Opening log observer");
       reader = new LogFileReader(logFile);
       executor = Executors.newSingleThreadScheduledExecutor();
       schedulePeriodicLogCheck();
@@ -104,7 +104,7 @@ public class MinecraftLogObserver implements AutoCloseable {
   @Override
   public synchronized void close() {
     if (isOpen()) {
-      logger.info("Closing log observer");
+      LOGGER.info("Closing log observer");
       cancelPeriodicLogCheck();
       executor.shutdown();
       executor = null;
