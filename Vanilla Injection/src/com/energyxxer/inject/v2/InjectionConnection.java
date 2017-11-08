@@ -1,13 +1,9 @@
 package com.energyxxer.inject.v2;
 
-import static com.energyxxer.inject.structures.StructureBlock.Mode.LOAD;
-import static com.energyxxer.inject.v2.CommandBlock.Type.CHAIN;
-import static com.energyxxer.inject.v2.CommandBlock.Type.REPEAT;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.io.Files.createParentDirs;
-import static de.adrodoc55.minecraft.coordinate.Direction3.DOWN;
 import static java.nio.file.Files.isDirectory;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
@@ -20,17 +16,13 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
@@ -40,15 +32,9 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.Integers;
 
 import com.energyxxer.inject.listeners.SuccessEvent;
-import com.energyxxer.inject.structures.StructureBlock;
 import com.google.common.base.Charsets;
-import com.google.common.collect.Iterators;
 import com.google.common.primitives.Ints;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3D;
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
-import de.adrodoc55.minecraft.structure.SimpleBlock;
-import de.adrodoc55.minecraft.structure.SimpleBlockState;
 import de.adrodoc55.minecraft.structure.Structure;
 
 /**
@@ -86,6 +72,7 @@ public class InjectionConnection implements AutoCloseable {
 
   private final Logger logger;
   private final MinecraftLogObserver logObserver;
+  private final InjectionBuffer injectionBuffer;
 
   /**
    * The directory of the Minecraft world.
@@ -103,13 +90,8 @@ public class InjectionConnection implements AutoCloseable {
    */
   private final Path structureDir;
   /**
-   * The directory to use for {@link #flush()} operations. This is a subdirectory of
-   * {@link #structureDir} called "inject/<i>{@link #identifier}</i>".
-   */
-  private final Path injectionDir;
-  /**
-   * The file used to persist the {@link #structureId}. This is a file in the {@link #injectionDir}
-   * called "data.txt".
+   * The file used to persist the {@link #structureId}. This is a file in the {@link #structureDir}
+   * called "inject/<i>{@link #identifier}</i>/data.txt".
    */
   private final Path dataFile;
   private @Nullable FileChannel dataFileChannel;
@@ -145,36 +127,6 @@ public class InjectionConnection implements AutoCloseable {
   private int lastConfirmedStructureId = -1;
 
   /**
-   * This flag indicates whether or not the next flush operation should generate commands that if
-   * successful are written to the {@link MinecraftLogObserver#logFile log file}. This is usually
-   * set to {@code true} when listening for the output of some commands.
-   * <p>
-   * <b>Implementation Notes</b><br>
-   * This field is not {@code volatile} because it is only read while holding the exclusive write
-   * lock of {@link #logAdminCommandsLock}.
-   */
-  private boolean logAdminCommands;
-  /**
-   * This {@link ReadWriteLock} is used to prevent concurrent adding of commands that require admin
-   * command logging while flushing.<br>
-   * Adding such commands is considered to be the read operation, because multiple commands may be
-   * added concurrently.<br>
-   * Flushing is considered to be the write operation, because while flushing you may not add such a
-   * command or you might end up with one of the following scenarios:
-   * <ul>
-   * <li>If such a command is first added during a {@link #flush()} then it might be added to the
-   * {@link Structure} even though the preparation to enable logging was not added.</li>
-   * <li>If such a command is added during a {@link #flush()} then the flag
-   * {@link #logAdminCommands} might be set to {@code false} by the {@link #flush()} operation even
-   * though the command might not have been added to the {@link Structure} and was instead added to
-   * {@link #commandBuffer}.</li>
-   * </ul>
-   */
-  private final ReadWriteLock logAdminCommandsLock = new ReentrantReadWriteLock();
-
-  private final Collection<Command> commandBuffer = new ConcurrentLinkedQueue<>();
-
-  /**
    * Create and {@link #open()} a new {@link InjectionConnection} with the specified parameters.
    *
    * @param logFile the {@link MinecraftLogObserver#logFile log file} of the Minecraft installation
@@ -192,15 +144,18 @@ public class InjectionConnection implements AutoCloseable {
     this.identifier = checkNotNull(identifier, "identifier == null!");
     logger = LogManager.getLogger(toString());
     logObserver = new MinecraftLogObserver(logFile);
+    injectionBuffer = new InjectionBuffer(this::getStructureName);
     structureDir = worldDir.resolve("structures");
-    injectionDir = structureDir.resolve("inject").resolve(identifier);
-    dataFile = injectionDir.resolve("data.txt");
+    dataFile = structureDir.resolve(getStructureNamePrefix() + "data.txt");
     open();
   }
 
+  private String getStructureNamePrefix() {
+    return "inject/" + identifier + "/";
+  }
+
   private String getStructureName(int structureId) {
-    String result = structureDir.relativize(injectionDir) + "/" + structureId;
-    return result.replace('\\', '/');
+    return getStructureNamePrefix() + structureId;
   }
 
   private Path getStructureFile(int structureId) {
@@ -272,10 +227,9 @@ public class InjectionConnection implements AutoCloseable {
   }
 
   /**
-   * Load the value for {@link #structureId} from {@link #dataFile} .
+   * Load the value of {@link #structureId} from {@link #dataFile}.
    *
    * @return the value for {@link #structureId}
-   *
    * @throws IOException if an I/O error occurs while reading {@link #dataFile}
    */
   private int loadStructureId() throws IOException {
@@ -285,18 +239,28 @@ public class InjectionConnection implements AutoCloseable {
     return Integers.parseInt(fileContent);
   }
 
+  /**
+   * Save the specified value of {@link #structureId} to {@link #dataFile}.
+   *
+   * @param structureId the value of {@link #structureId} (this is a parameter instead of
+   *        {@code this.structirId.get()} due to concurrency)
+   * @throws IOException if an I/O error occurs while writing to {@link #dataFile}
+   */
+  private void saveStructureId(int structureId) throws IOException {
+    dataFileChannel.position(0);
+    dataFileChannel.write(Charsets.UTF_8.encode(String.valueOf(structureId + 1)));
+    dataFileChannel.truncate(dataFileChannel.position());
+  }
+
   @Override
   public void close() throws IOException {
     if (isOpen()) {
       logger.info("Closing connection");
-      logObserver.close();
-      if (isActive()) {
-        cancelPeriodicFlush();
-      }
-      executor.shutdown();
-      executor = null;
       lastConfirmedStructureId = -1;
+      executor.shutdown();
+      logObserver.close();
       flush();
+      executor = null;
       closeDataFileChannel();
     }
   }
@@ -336,36 +300,28 @@ public class InjectionConnection implements AutoCloseable {
    * After pausing {@link #isOpen()} will return {@code true} and {@link #isActive()} will return
    * {@code false}.
    *
-   * @return {@code true} if {@code this} connection was paused just now, {@code false} if it was
-   *         already paused and not {@link #isActive() active}
    * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
    */
-  public boolean pause() throws IllegalStateException {
+  public void pause() throws IllegalStateException {
     checkOpen();
-    if (!isActive()) {
-      return false;
+    if (isActive()) {
+      logger.info("Pausing connection");
+      cancelPeriodicFlush();
     }
-    logger.info("Pausing connection");
-    cancelPeriodicFlush();
-    return true;
   }
 
   /**
    * Resume {@code this} connection by scheduling periodic {@link #flush() flushing}.<br>
    * After resuming both {@link #isOpen()} and {@link #isActive()} will return {@code true}.
    *
-   * @return {@code true} if {@code this} connection was activated just now, {@code false} if it was
-   *         already {@link #isActive() active}
    * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
    */
-  public boolean resume() throws IllegalStateException {
+  public void resume() throws IllegalStateException {
     checkOpen();
-    if (isActive()) {
-      return false;
+    if (isPaused()) {
+      logger.info("Resuming connection");
+      schedulePeriodicFlush();
     }
-    logger.info("Resuming connection");
-    schedulePeriodicFlush();
-    return true;
   }
 
   /**
@@ -410,12 +366,12 @@ public class InjectionConnection implements AutoCloseable {
         } else {
           flush();
         }
-      } catch (IOException ex) {
-        logger.error("Periodic flush encountered an error, closing connection", ex);
+      } catch (Throwable t1) {
+        logger.error("Periodic flush encountered an error", t1);
         try {
           close();
-        } catch (IOException ex2) {
-          logger.error("Closing encountered an error", ex2);
+        } catch (Throwable t2) {
+          logger.error("Closing encountered an error", t2);
         }
       }
     }, 0, flushPeriod, flushTimeUnit);
@@ -456,8 +412,8 @@ public class InjectionConnection implements AutoCloseable {
   }
 
   /**
-   * Flush the contents of {@code this} connection by creating a new {@link Structure} file in the
-   * {@link #structureDir}.
+   * Flush the contents of the underlying {@link #injectionBuffer} by creating a new
+   * {@link Structure} file in the {@link #structureDir}.
    * <p>
    * If {@code this} connection {@link #isActive()} a flush will be performed periodically according
    * to {@link #flushPeriod} and {@link #flushTimeUnit}.
@@ -467,64 +423,19 @@ public class InjectionConnection implements AutoCloseable {
    */
   public void flush() throws IllegalStateException, IOException {
     checkOpen();
-    // WriteLock to prevent concurrent adding of commands that require admin command logging
-    // AND synchronize the flush itself to prevent empty structures
-    logAdminCommandsLock.writeLock().lock();
-    boolean logAdminCommands = this.logAdminCommands; // This copy is used after releasing the lock
-    int structureId; // Don't use this.structureId.get(), because that can be modified concurrently
-    Structure structure;
-    try {
-      if (commandBuffer.isEmpty()) {
-        logger.trace("Skipping flush due to empty buffer");
+    int structureId;
+    synchronized (this.structureId) { // Synchronized incrementing of structureId
+      structureId = this.structureId.get();
+      injectTimeoutCheckIfNeccessary(structureId);
+      Structure structure = injectionBuffer.createStructure(structureId);
+      if (structure == null) {
         return;
       }
-      // StructureId is only incremented if a structure is actually generated
-      structureId = this.structureId.getAndIncrement();
-      structure = new Structure(922, "Vanilla-Injection");
-      injectTimeoutCheckIfNeccessary(structureId);
-      if (logAdminCommands) {
-        structure.addEntity(newCommandBlockMinecart(structureId, "gamerule logAdminCommands true"));
-      }
-      Iterators.consumingIterator(commandBuffer.iterator()).forEachRemaining(command -> {
-        structure.addEntity(newCommandBlockMinecart(structureId, command));
-      });
-      this.logAdminCommands = false;
-    } finally {
-      // commandBuffer no longer contains comands that require admin command loggig, releasing lock
-      logAdminCommandsLock.writeLock().unlock();
+      structure.writeTo(getStructureFile(structureId).toFile());
+      // Don't increment if no structure was written
+      this.structureId.incrementAndGet();
     }
-    if (logAdminCommands) {
-      structure.addEntity(newCommandBlockMinecart(structureId, "gamerule logAdminCommands false"));
-    }
-    structure.addEntity(newCommandBlockMinecart(structureId,
-        "kill @e[type=commandblock_minecart,dy=0,tag=" + getStructureName(structureId) + "]"));
-
-    structure.addBlock(
-        new StructureBlock(new Coordinate3I(0, 0, 0), LOAD, getStructureName(structureId + 1)));
-    structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Coordinate3I(0, 2, 0)));
-    structure.addBlock(new SimpleBlock("minecraft:activator_rail", new Coordinate3I(0, 3, 0)));
-
-    structure.addBlock(new CommandBlock("setblock ~ ~-1 ~ stone", new Coordinate3I(0, 1, 1), DOWN,
-        CHAIN, false, true));
-    structure.addBlock(new CommandBlock("setblock ~ ~-2 ~ redstone_block",
-        new Coordinate3I(0, 2, 1), DOWN, REPEAT, false, false));
-
-    structure.setBackground(new SimpleBlockState("minecraft:air"));
-
-    structure.writeTo(getStructureFile(structureId).toFile());
-    persistStructureId(structureId);
-  }
-
-  private static final Coordinate3D MINECART_POS = new Coordinate3D(0.5, 3.0625, 0.5);
-
-  private CommandBlockMinecart newCommandBlockMinecart(int structureId, String command) {
-    return newCommandBlockMinecart(structureId, new Command(command));
-  }
-
-  private CommandBlockMinecart newCommandBlockMinecart(int structureId, Command command) {
-    CommandBlockMinecart result = new CommandBlockMinecart(command, MINECART_POS);
-    result.addTag(getStructureName(structureId));
-    return result;
+    saveStructureId(structureId);
   }
 
   /**
@@ -578,7 +489,10 @@ public class InjectionConnection implements AutoCloseable {
     } else {
       i = lastConfirmedStructureId;
     }
-    logger.debug("cleaning up old structure files, ID {} up to {}", i, structureId);
+    i = Math.max(0, i); // There should not be negative structureIds
+    if (i <= structureId) {
+      logger.debug("cleaning up old structure files, ID {} up to {}", i, structureId);
+    }
     for (; i <= structureId; i++) {
       Path structureFile = getStructureFile(i);
       try {
@@ -590,19 +504,13 @@ public class InjectionConnection implements AutoCloseable {
     lastConfirmedStructureId = structureId;
   }
 
-  private void persistStructureId(int structureId) throws IOException {
-    dataFileChannel.position(0);
-    dataFileChannel.write(Charsets.UTF_8.encode(String.valueOf(structureId + 1)));
-    dataFileChannel.truncate(dataFileChannel.position());
-  }
-
   public void injectCommand(String command) throws IllegalStateException {
     injectCommand(new Command(command));
   }
 
   public void injectCommand(Command command) throws IllegalStateException {
     checkOpen();
-    commandBuffer.add(command);
+    injectionBuffer.addCommand(command);
   }
 
   public void injectCommand(String command, Consumer<SuccessEvent> listener)
@@ -613,14 +521,8 @@ public class InjectionConnection implements AutoCloseable {
 
   public void injectCommand(Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
-    logAdminCommandsLock.readLock().lock();
-    try {
-      injectCommand(command);
-      logObserver.addSuccessListener(command.getName(), false, listener);
-      logAdminCommands = true;
-    } finally {
-      logAdminCommandsLock.readLock().unlock();
-    }
+    logObserver.addSuccessListener(command.getName(), false, listener);
+    injectionBuffer.addFetchCommand(command);
   }
 
   @Override
