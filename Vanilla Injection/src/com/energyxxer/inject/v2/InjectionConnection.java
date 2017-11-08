@@ -180,24 +180,25 @@ public class InjectionConnection implements AutoCloseable {
    *         response
    */
   public void open() throws IOException, InterruptedException {
-    checkState(!isOpen(), "This connection is already established!");
-    logger.info("Establishing connection");
-    lockDataFile();
-    logObserver.open();
-    executor = Executors.newSingleThreadScheduledExecutor();
-    int structureId = loadStructureId();
-    this.structureId.set(structureId);
-    logger.info("Using structure '{}'", getStructureName(structureId));
-    Semaphore semaphore = new Semaphore(0);
-    injectCommand(SUCCESSFUL_COMMAND, e -> {
-      confirmStructure(structureId);
-      semaphore.release();
-    });
-    flush();
-    logger.info("Waiting for Minecraft's response");
-    semaphore.acquire();
-    schedulePeriodicFlush();
-    logger.info("Successfully established connection");
+    if (isClosed()) {
+      logger.info("Establishing connection");
+      lockDataFile();
+      logObserver.open();
+      executor = Executors.newSingleThreadScheduledExecutor();
+      int structureId = loadStructureId();
+      this.structureId.set(structureId);
+      logger.info("Using structure '{}'", getStructureName(structureId));
+      Semaphore semaphore = new Semaphore(0);
+      injectCommand(SUCCESSFUL_COMMAND, e -> {
+        confirmStructure(structureId);
+        semaphore.release();
+      });
+      flush();
+      logger.info("Waiting for Minecraft's response");
+      semaphore.acquire();
+      schedulePeriodicFlush();
+      logger.info("Successfully established connection");
+    }
   }
 
   /**
