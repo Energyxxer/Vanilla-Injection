@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -14,6 +13,8 @@ import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.common.io.CountingInputStream;
 
 /**
  * A {@link LogFileReader} is used to read new lines that have been added to a file since the last
@@ -58,19 +59,29 @@ public class LogFileReader {
    */
   public void readAddedLines(Charset charset, Consumer<String> lineConsumer) {
     try (// Open file without locking it
-        InputStream is = Files.newInputStream(logFile, StandardOpenOption.READ);
+        CountingInputStream is =
+            new CountingInputStream(Files.newInputStream(logFile, StandardOpenOption.READ));
         BufferedReader reader = new BufferedReader(new InputStreamReader(is, charset))) {
-      long logFileSize = Files.size(logFile);
+
       // Skip previously read bytes if there was no log file rotation
-      if (bytesRead <= logFileSize) {
+      if (bytesRead <= Files.size(logFile)) {
         is.skip(bytesRead);
       } else {
-        LOGGER.info("Detected log file rotation due to change in log file size");
+        LOGGER.info("Detected log file rotation due to change in size of log file: {}", logFile);
       }
-      bytesRead = logFileSize;
-      String line;
-      while ((line = reader.readLine()) != null) {
-        lineConsumer.accept(line);
+      try {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          lineConsumer.accept(line);
+        }
+      } catch (Exception ex) {
+        LOGGER.warn(
+            "Exception during log line processing, some bytes might be skipped due to buffering!",
+            ex);
+        throw ex;
+      } finally {
+        // Even though we use a BufferedReader the count is correct when the stream is exhausted
+        bytesRead = is.getCount();
       }
     } catch (IOException ex) {
       LOGGER.info("Interpreting exception as a log file rotation", ex);
