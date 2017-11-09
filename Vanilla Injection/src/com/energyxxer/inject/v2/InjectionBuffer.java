@@ -2,11 +2,15 @@ package com.energyxxer.inject.v2;
 
 import static com.energyxxer.inject.structures.StructureBlock.Mode.LOAD;
 import static com.energyxxer.inject.v2.CommandBlock.Type.CHAIN;
+import static com.energyxxer.inject.v2.CommandBlock.Type.IMPULSE;
 import static com.energyxxer.inject.v2.CommandBlock.Type.REPEAT;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.concat;
 import static de.adrodoc55.minecraft.coordinate.Direction3.DOWN;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -19,10 +23,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.energyxxer.inject.structures.StructureBlock;
-import com.google.common.collect.Iterators;
+import com.energyxxer.inject.v2.CommandBlock.Type;
+import com.google.common.collect.Iterables;
 
 import de.adrodoc55.minecraft.coordinate.Coordinate3D;
 import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Direction3;
 import de.adrodoc55.minecraft.structure.SimpleBlock;
 import de.adrodoc55.minecraft.structure.SimpleBlockState;
 import de.adrodoc55.minecraft.structure.Structure;
@@ -68,7 +74,8 @@ class InjectionBuffer {
    */
   private final ReadWriteLock logAdminCommandsLock = new ReentrantReadWriteLock();
 
-  private final Collection<Command> commands = new ConcurrentLinkedQueue<>();
+  private final Collection<Command> minecartCommands = new ConcurrentLinkedQueue<>();
+  private final Collection<Command> impulseCommands = new ConcurrentLinkedQueue<>();
 
   public InjectionBuffer(IntFunction<String> getStructureName) {
     this.getStructureName = checkNotNull(getStructureName, "getStructureName == null!");
@@ -78,14 +85,28 @@ class InjectionBuffer {
     return getStructureName.apply(structureId);
   }
 
-  public void addCommand(Command command) throws IllegalStateException {
-    commands.add(command);
+  public void addMinecartCommand(Command command) throws IllegalStateException {
+    minecartCommands.add(command);
   }
 
-  public void addFetchCommand(Command command) throws IllegalStateException {
+  public void addMinecartFetchCommand(Command command) throws IllegalStateException {
     logAdminCommandsLock.readLock().lock();
     try {
-      addCommand(command);
+      addMinecartCommand(command);
+      logAdminCommands = true;
+    } finally {
+      logAdminCommandsLock.readLock().unlock();
+    }
+  }
+
+  public void addImpulseCommand(Command command) throws IllegalStateException {
+    impulseCommands.add(command);
+  }
+
+  public void addImpulseFetchCommand(Command command) throws IllegalStateException {
+    logAdminCommandsLock.readLock().lock();
+    try {
+      addImpulseCommand(command);
       logAdminCommands = true;
     } finally {
       logAdminCommandsLock.readLock().unlock();
@@ -93,7 +114,7 @@ class InjectionBuffer {
   }
 
   private boolean isEmpty() {
-    return commands.isEmpty();
+    return minecartCommands.isEmpty() && impulseCommands.isEmpty();
   }
 
   /**
@@ -109,33 +130,31 @@ class InjectionBuffer {
     // AND synchronize the structure creation itself to prevent empty structures
     logAdminCommandsLock.writeLock().lock();
     boolean logAdminCommands = this.logAdminCommands; // This copy is used after releasing the lock
-    Structure structure;
+    List<Command> minecartCommands;
+    List<Command> impulseCommands;
     try {
       if (isEmpty()) {
         LOGGER.trace("Skipping creation of structure {} due to empty buffer", structureId);
         return null;
       }
-      LOGGER.debug("Creating structure from commands {}", commands);
-      structure = new Structure(922, "Vanilla-Injection");
-      if (logAdminCommands) {
-        structure.addEntity(newCommandBlockMinecart(structureId, "gamerule logAdminCommands true"));
-      }
-      Iterators.consumingIterator(commands.iterator()).forEachRemaining(command -> {
-        structure.addEntity(newCommandBlockMinecart(structureId, command));
-      });
       this.logAdminCommands = false;
+      minecartCommands = new ArrayList<>(this.minecartCommands.size());
+      for (Command command : Iterables.consumingIterable(this.minecartCommands)) {
+        minecartCommands.add(command);
+      }
+      impulseCommands = new ArrayList<>(this.impulseCommands.size());
+      for (Command command : Iterables.consumingIterable(this.impulseCommands)) {
+        impulseCommands.add(command);
+      }
     } finally {
-      // commandBuffer no longer contains comands that require admin command loggig, releasing lock
+      // this buffer no longer contains fetch commands, releasing lock
       logAdminCommandsLock.writeLock().unlock();
     }
-    if (logAdminCommands) {
-      structure.addEntity(newCommandBlockMinecart(structureId, "gamerule logAdminCommands false"));
-    }
-    structure.addEntity(newCommandBlockMinecart(structureId,
-        "kill @e[type=commandblock_minecart,dy=0,tag=" + getStructureName(structureId) + "]"));
-
-    structure.addBlock(
-        new StructureBlock(new Coordinate3I(0, 0, 0), LOAD, getStructureName(structureId + 1)));
+    LOGGER.debug("Creating structure from commands {}", concat(minecartCommands, impulseCommands));
+    Structure structure = new Structure(922, "Vanilla-Injection");
+    structure.setBackground(new SimpleBlockState("minecraft:air"));
+    String nextStructureName = getStructureName(structureId + 1);
+    structure.addBlock(new StructureBlock(new Coordinate3I(0, 0, 0), LOAD, nextStructureName));
     structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Coordinate3I(0, 2, 0)));
     structure.addBlock(new SimpleBlock("minecraft:activator_rail", new Coordinate3I(0, 3, 0)));
 
@@ -144,15 +163,33 @@ class InjectionBuffer {
     structure.addBlock(new CommandBlock("setblock ~ ~-2 ~ redstone_block",
         new Coordinate3I(0, 2, 1), DOWN, REPEAT, false, false));
 
-    structure.setBackground(new SimpleBlockState("minecraft:air"));
+    if (logAdminCommands) {
+      minecartCommands.add(0, new Command("gamerule logAdminCommands true"));
+      minecartCommands.add(new Command("gamerule logAdminCommands false"));
+      impulseCommands.add(0, new Command("gamerule logAdminCommands true"));
+      impulseCommands.add(new Command("gamerule logAdminCommands false"));
+    }
+
+    int x = 2, y = 0, z = 0;
+    for (Command command : impulseCommands) {
+      Coordinate3I coordinate = new Coordinate3I(x, y, z);
+      Direction3 direction = Direction3.SOUTH;
+      Type type = z == 0 ? IMPULSE : CHAIN;
+      boolean conditional = false;
+      boolean auto = true;
+      structure.addBlock(new CommandBlock(command, coordinate, direction, type, conditional, auto));
+      z++;
+    }
+
+    minecartCommands.add(new Command(
+        "kill @e[type=commandblock_minecart,dy=0,tag=" + getStructureName(structureId) + "]"));
+    for (Command command : minecartCommands) {
+      structure.addEntity(newCommandBlockMinecart(structureId, command));
+    }
     return structure;
   }
 
   private static final Coordinate3D MINECART_POS = new Coordinate3D(0.5, 3.0625, 0.5);
-
-  private CommandBlockMinecart newCommandBlockMinecart(int structureId, String command) {
-    return newCommandBlockMinecart(structureId, new Command(command));
-  }
 
   private CommandBlockMinecart newCommandBlockMinecart(int structureId, Command command) {
     CommandBlockMinecart result = new CommandBlockMinecart(command, MINECART_POS);

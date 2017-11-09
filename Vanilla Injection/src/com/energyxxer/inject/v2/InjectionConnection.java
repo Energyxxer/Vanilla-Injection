@@ -510,7 +510,7 @@ public class InjectionConnection implements AutoCloseable {
 
   public void injectCommand(Command command) throws IllegalStateException {
     checkOpen();
-    injectionBuffer.addCommand(command);
+    injectionBuffer.addMinecartCommand(command);
   }
 
   public void injectCommand(String command, Consumer<SuccessEvent> listener)
@@ -522,7 +522,28 @@ public class InjectionConnection implements AutoCloseable {
   public void injectCommand(Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     logObserver.addSuccessListener(command.getName(), false, listener);
-    injectionBuffer.addFetchCommand(command);
+    injectionBuffer.addMinecartFetchCommand(command);
+  }
+
+  public void injectImpulseCommand(String command) throws IllegalStateException {
+    injectImpulseCommand(new Command(command));
+  }
+
+  public void injectImpulseCommand(Command command) throws IllegalStateException {
+    checkOpen();
+    injectionBuffer.addImpulseCommand(command);
+  }
+
+  public void injectImpulseCommand(String command, Consumer<SuccessEvent> listener)
+      throws IllegalStateException {
+    String name = UUID.randomUUID().toString();
+    injectImpulseCommand(new Command(name, command), listener);
+  }
+
+  public void injectImpulseCommand(Command command, Consumer<SuccessEvent> listener)
+      throws IllegalStateException {
+    logObserver.addSuccessListener(command.getName(), false, listener);
+    injectionBuffer.addImpulseFetchCommand(command);
   }
 
   @Override
