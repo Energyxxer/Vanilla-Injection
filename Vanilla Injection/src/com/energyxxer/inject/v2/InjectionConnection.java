@@ -100,7 +100,7 @@ public class InjectionConnection implements AutoCloseable {
 
   /**
    * The {@link ScheduledExecutorService} to use for periodic {@link #flush() flushing}. The
-   * {@link #executor} is {@code null} unless the connection {@link #isOpen()}.
+   * {@link #executor} is {@code null} unless the connection {@link #isActive()}.
    */
   private @Nullable ScheduledExecutorService executor;
   /**
@@ -185,20 +185,29 @@ public class InjectionConnection implements AutoCloseable {
     if (isClosed()) {
       logger.info("Establishing connection");
       lockDataFile();
-      logObserver.open();
-      executor = Executors.newSingleThreadScheduledExecutor();
-      int structureId = loadStructureId();
-      this.structureId.set(structureId);
-      logger.info("Using structure '{}'", getStructureName(structureId));
-      Semaphore semaphore = new Semaphore(0);
-      injectCommand(SUCCESSFUL_COMMAND, e -> {
-        confirmStructure(structureId);
-        semaphore.release();
-      });
-      flush();
-      logger.info("Waiting for Minecraft's response");
-      semaphore.acquire();
-      schedulePeriodicFlush();
+      try {
+        logObserver.open();
+        try {
+          int structureId = loadStructureId();
+          this.structureId.set(structureId);
+          logger.info("Using structure '{}'", getStructureName(structureId));
+          Semaphore semaphore = new Semaphore(0);
+          injectCommand(SUCCESSFUL_COMMAND, e -> {
+            confirmStructure(structureId);
+            semaphore.release();
+          });
+          flush();
+          logger.info("Waiting for Minecraft's response");
+          semaphore.acquire();
+          activate();
+        } catch (Throwable t) {
+          logObserver.close();
+          throw t;
+        }
+      } catch (Throwable t) {
+        closeDataFileChannel();
+        throw t;
+      }
       logger.info("Successfully established connection");
     }
   }
@@ -259,10 +268,8 @@ public class InjectionConnection implements AutoCloseable {
     if (isOpen()) {
       logger.info("Closing connection");
       lastConfirmedStructureId = -1;
-      executor.shutdown();
       logObserver.close();
       flush();
-      executor = null;
       closeDataFileChannel();
     }
   }
@@ -281,7 +288,7 @@ public class InjectionConnection implements AutoCloseable {
    * @return whether {@code this} connection is open
    */
   public boolean isOpen() {
-    return executor != null && dataFileChannel != null;
+    return dataFileChannel != null;
   }
 
   /**
@@ -309,6 +316,8 @@ public class InjectionConnection implements AutoCloseable {
     if (isActive()) {
       logger.info("Pausing connection");
       cancelPeriodicFlush();
+      executor.shutdown();
+      executor = null;
     }
   }
 
@@ -322,8 +331,13 @@ public class InjectionConnection implements AutoCloseable {
     checkOpen();
     if (isPaused()) {
       logger.info("Resuming connection");
-      schedulePeriodicFlush();
+      activate();
     }
+  }
+
+  private void activate() {
+    executor = Executors.newSingleThreadScheduledExecutor();
+    schedulePeriodicFlush();
   }
 
   /**
@@ -343,7 +357,7 @@ public class InjectionConnection implements AutoCloseable {
    * @return whether {@code this} connection is active
    */
   public boolean isActive() {
-    return isOpen() && flushFuture != null;
+    return isOpen() && executor != null && flushFuture != null;
   }
 
   /**
