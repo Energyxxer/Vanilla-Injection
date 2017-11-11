@@ -14,20 +14,20 @@ import javax.annotation.concurrent.Immutable;
 import com.google.common.collect.Collections2;
 
 /**
- * A three dimensional {@code double} coordinate.
+ * A three dimensional {@code double} vector, can be used as a coordinate or size.
  *
  * @author Adrodoc55
  */
 @Immutable
-public class Coordinate3D implements Cloneable {
-  public static final Coordinate3D SELF = new Coordinate3D(0, 0, 0);
-  public static final Coordinate3D EAST = new Coordinate3D(1, 0, 0);
-  public static final Coordinate3D WEST = new Coordinate3D(-1, 0, 0);
-  public static final Coordinate3D UP = new Coordinate3D(0, 1, 0);
-  public static final Coordinate3D DOWN = new Coordinate3D(0, -1, 0);
-  public static final Coordinate3D SOUTH = new Coordinate3D(0, 0, 1);
-  public static final Coordinate3D NORTH = new Coordinate3D(0, 0, -1);
-  private static final Collection<Coordinate3D> DIRECTIONS = new ArrayList<Coordinate3D>(6);
+public class Vec3D implements Cloneable {
+  public static final Vec3D SELF = new Vec3D(0, 0, 0);
+  public static final Vec3D EAST = new Vec3D(1, 0, 0);
+  public static final Vec3D WEST = new Vec3D(-1, 0, 0);
+  public static final Vec3D UP = new Vec3D(0, 1, 0);
+  public static final Vec3D DOWN = new Vec3D(0, -1, 0);
+  public static final Vec3D SOUTH = new Vec3D(0, 0, 1);
+  public static final Vec3D NORTH = new Vec3D(0, 0, -1);
+  private static final Collection<Vec3D> DIRECTIONS = new ArrayList<Vec3D>(6);
 
   static {
     DIRECTIONS.add(EAST);
@@ -38,28 +38,28 @@ public class Coordinate3D implements Cloneable {
     DIRECTIONS.add(NORTH);
   }
 
-  public static Optional<Coordinate3D> min(Collection<Coordinate3D> coordinates) {
-    return coordinates.stream().reduce(Coordinate3D::min);
+  public static Optional<Vec3D> min(Collection<Vec3D> elements) {
+    return elements.stream().reduce(Vec3D::min);
   }
 
-  public static Optional<Coordinate3D> max(Collection<Coordinate3D> coordinates) {
-    return coordinates.stream().reduce(Coordinate3D::max);
+  public static Optional<Vec3D> max(Collection<Vec3D> elements) {
+    return elements.stream().reduce(Vec3D::max);
   }
 
-  public static Coordinate3D min(Coordinate3D a, Coordinate3D b) {
+  public static Vec3D min(Vec3D a, Vec3D b) {
     return getBinaryOperator(Math::min).apply(a, b);
   }
 
-  public static Coordinate3D max(Coordinate3D a, Coordinate3D b) {
+  public static Vec3D max(Vec3D a, Vec3D b) {
     return getBinaryOperator(Math::max).apply(a, b);
   }
 
-  private static BinaryOperator<Coordinate3D> getBinaryOperator(DoubleBinaryOperator op) {
+  private static BinaryOperator<Vec3D> getBinaryOperator(DoubleBinaryOperator op) {
     return (a, b) -> {
       double x = op.applyAsDouble(a.x, b.x);
       double y = op.applyAsDouble(a.y, b.y);
       double z = op.applyAsDouble(a.z, b.z);
-      return new Coordinate3D(x, y, z);
+      return new Vec3D(x, y, z);
     };
   }
 
@@ -67,26 +67,26 @@ public class Coordinate3D implements Cloneable {
   public final double y;
   public final double z;
 
-  public Coordinate3D() {
+  public Vec3D() {
     this(0);
   }
 
-  public Coordinate3D(double side) {
+  public Vec3D(double side) {
     this(side, side, side);
   }
 
-  public Coordinate3D(double x, double y, double z) {
+  public Vec3D(double x, double y, double z) {
     this.x = x;
     this.y = y;
     this.z = z;
   }
 
-  public Coordinate3D(Coordinate3D other) {
+  public Vec3D(Vec3D other) {
     this(other.x, other.y, other.z);
   }
 
-  public Coordinate3D copy() {
-    return new Coordinate3D(this);
+  public Vec3D copy() {
+    return new Vec3D(this);
   }
 
   @Override
@@ -99,19 +99,19 @@ public class Coordinate3D implements Cloneable {
     }
   }
 
-  public Coordinate3I ceil() {
+  public Vec3I ceil() {
     return round(RoundingMode.CEILING);
   }
 
-  public Coordinate3I floor() {
+  public Vec3I floor() {
     return round(RoundingMode.FLOOR);
   }
 
-  public Coordinate3I round(RoundingMode mode) {
+  public Vec3I round(RoundingMode mode) {
     int x = roundToInt(this.x, mode);
     int y = roundToInt(this.y, mode);
     int z = roundToInt(this.z, mode);
-    return new Coordinate3I(x, y, z);
+    return new Vec3I(x, y, z);
   }
 
   /**
@@ -141,18 +141,18 @@ public class Coordinate3D implements Cloneable {
     return z;
   }
 
-  public Coordinate3D plus(Coordinate3D other) {
+  public Vec3D plus(Vec3D other) {
     double x = this.x + other.x;
     double y = this.y + other.y;
     double z = this.z + other.z;
-    return new Coordinate3D(x, y, z);
+    return new Vec3D(x, y, z);
   }
 
-  public Coordinate3D minus(Coordinate3D other) {
+  public Vec3D minus(Vec3D other) {
     double x = this.x - other.x;
     double y = this.y - other.y;
     double z = this.z - other.z;
-    return new Coordinate3D(x, y, z);
+    return new Vec3D(x, y, z);
   }
 
   public double get(Axis3 axis) {
@@ -168,35 +168,35 @@ public class Coordinate3D implements Cloneable {
     }
   }
 
-  public Coordinate3D plus(double scalar, Direction3 direction) {
+  public Vec3D plus(double scalar, Direction3 direction) {
     scalar = direction.isNegative() ? -scalar : scalar;
     return plus(scalar, direction.getAxis());
   }
 
-  public Coordinate3D plus(double scalar, Axis3 axis) {
+  public Vec3D plus(double scalar, Axis3 axis) {
     return axis.plus(this, scalar);
   }
 
-  public Coordinate3D minus(double scalar, Direction3 direction) {
+  public Vec3D minus(double scalar, Direction3 direction) {
     scalar = direction.isNegative() ? -scalar : scalar;
     return minus(scalar, direction.getAxis());
   }
 
-  public Coordinate3D minus(double scalar, Axis3 axis) {
+  public Vec3D minus(double scalar, Axis3 axis) {
     return plus(-scalar, axis);
   }
 
   /**
    * Simple scalar multiplication.
    *
-   * @param scalar to multiply this with
-   * @return a copy of this coordinate that is multiplied with the scalar
+   * @param scalar to multiply {@code this} with
+   * @return a copy of {@code this} {@link Vec3D} that is multiplied with the scalar
    */
-  public Coordinate3D mult(double scalar) {
+  public Vec3D mult(double scalar) {
     double x = this.x * scalar;
     double y = this.y * scalar;
     double z = this.z * scalar;
-    return new Coordinate3D(x, y, z);
+    return new Vec3D(x, y, z);
   }
 
   public String toAbsoluteString() {
@@ -214,7 +214,7 @@ public class Coordinate3D implements Cloneable {
     return String.valueOf(d);
   }
 
-  public Collection<Coordinate3D> getAdjacent() {
+  public Collection<Vec3D> getAdjacent() {
     return Collections2.transform(DIRECTIONS, this::plus);
   }
 
@@ -240,7 +240,7 @@ public class Coordinate3D implements Cloneable {
       return false;
     if (getClass() != obj.getClass())
       return false;
-    Coordinate3D other = (Coordinate3D) obj;
+    Vec3D other = (Vec3D) obj;
     if (Double.doubleToLongBits(x) != Double.doubleToLongBits(other.x))
       return false;
     if (Double.doubleToLongBits(y) != Double.doubleToLongBits(other.y))
@@ -252,6 +252,6 @@ public class Coordinate3D implements Cloneable {
 
   @Override
   public String toString() {
-    return "Coordinate3D [x=" + x + ", y=" + y + ", z=" + z + "]";
+    return "Vec3D [x=" + x + ", y=" + y + ", z=" + z + "]";
   }
 }

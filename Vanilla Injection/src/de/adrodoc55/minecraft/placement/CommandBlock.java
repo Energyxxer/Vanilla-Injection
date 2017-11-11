@@ -8,7 +8,7 @@ import javax.annotation.Nullable;
 
 import com.google.errorprone.annotations.Immutable;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.coordinate.Direction3;
 
 /**
@@ -23,10 +23,10 @@ class CommandBlock<C extends Command> {
    * The {@link Command} or {@code null} if this command block represents a NOP (no operation).
    */
   private final @Nullable C command;
-  private final Coordinate3I coordinate;
+  private final Vec3I coordinate;
   private final Direction3 direction;
 
-  public CommandBlock(@Nullable C command, Coordinate3I coordinate, Direction3 direction) {
+  public CommandBlock(@Nullable C command, Vec3I coordinate, Direction3 direction) {
     this.command = command;
     this.coordinate = checkNotNull(coordinate, "coordinate == null!");
     this.direction = checkNotNull(direction, "direction == null!");
@@ -42,7 +42,7 @@ class CommandBlock<C extends Command> {
   /**
    * @return the value of {@link #coordinate}
    */
-  public Coordinate3I getCoordinate() {
+  public Vec3I getCoordinate() {
     return coordinate;
   }
 

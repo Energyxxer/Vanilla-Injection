@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 import com.evilco.mc.nbt.tag.TagCompound;
 import com.evilco.mc.nbt.tag.TagString;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.structure.Block;
 import de.adrodoc55.minecraft.structure.Structure;
 
@@ -25,11 +25,11 @@ public class StructureBlock implements Block {
     DATA, SAVE, LOAD, CORNER;
   }
 
-  private final Coordinate3I coordinate;
+  private final Vec3I coordinate;
   private final Mode mode;
   private final @Nullable String name;
 
-  public StructureBlock(Coordinate3I coordinate, Mode mode, @Nullable String name) {
+  public StructureBlock(Vec3I coordinate, Mode mode, @Nullable String name) {
     this.coordinate = checkNotNull(coordinate, "coordinate == null!");
     this.mode = checkNotNull(mode, "mode == null!");
     this.name = name;
@@ -46,7 +46,7 @@ public class StructureBlock implements Block {
   }
 
   @Override
-  public Coordinate3I getCoordinate() {
+  public Vec3I getCoordinate() {
     return coordinate;
   }
 

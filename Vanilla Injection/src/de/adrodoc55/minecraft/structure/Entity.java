@@ -2,7 +2,7 @@ package de.adrodoc55.minecraft.structure;
 
 import com.evilco.mc.nbt.tag.TagCompound;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3D;
+import de.adrodoc55.minecraft.coordinate.Vec3D;
 
 /**
  * A Minecraft <a href="https://minecraft.gamepedia.com/Entity">entity</a> that can be added to a
@@ -12,11 +12,11 @@ import de.adrodoc55.minecraft.coordinate.Coordinate3D;
  */
 public interface Entity {
   /**
-   * The relative position of this {@link Entity} within a {@link Structure}.
+   * The relative coordinate of this {@link Entity} within a {@link Structure}.
    *
-   * @return relative position
+   * @return relative coordinate
    */
-  Coordinate3D getCoordinate();
+  Vec3D getCoordinate();
 
   /**
    * The specific <a href="https://minecraft-de.gamepedia.com/NBT-Format">NBT</a> of this

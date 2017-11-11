@@ -4,25 +4,25 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.evilco.mc.nbt.tag.TagCompound;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 
 /**
  * @author Adrodoc55
  */
 public class SimpleBlock extends SimpleBlockState implements Block {
-  private Coordinate3I coordinate;
+  private Vec3I coordinate;
 
-  public SimpleBlock(String stringId, Coordinate3I coordinate) {
+  public SimpleBlock(String stringId, Vec3I coordinate) {
     super(stringId);
     this.coordinate = checkNotNull(coordinate, "coordinate == null!");
   }
 
-  public SimpleBlock(BlockState state, Coordinate3I coordinate) {
+  public SimpleBlock(BlockState state, Vec3I coordinate) {
     super(state);
     this.coordinate = checkNotNull(coordinate, "coordinate == null!");
   }
 
-  public SimpleBlock(String stringId, TagCompound nbt, Coordinate3I coordinate) {
+  public SimpleBlock(String stringId, TagCompound nbt, Vec3I coordinate) {
     super(stringId, nbt);
     this.coordinate = checkNotNull(coordinate, "coordinate == null!");
   }
@@ -31,14 +31,14 @@ public class SimpleBlock extends SimpleBlockState implements Block {
    * @return the value of {@link #coordinate}
    */
   @Override
-  public Coordinate3I getCoordinate() {
+  public Vec3I getCoordinate() {
     return coordinate;
   }
 
   /**
    * @param coordinate the new value for {@link #coordinate}
    */
-  public void setCoordinate(Coordinate3I coordinate) {
+  public void setCoordinate(Vec3I coordinate) {
     this.coordinate = coordinate;
   }
 

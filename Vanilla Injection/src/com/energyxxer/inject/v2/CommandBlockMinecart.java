@@ -11,7 +11,7 @@ import com.evilco.mc.nbt.tag.TagList;
 import com.evilco.mc.nbt.tag.TagString;
 import com.google.common.collect.Lists;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3D;
+import de.adrodoc55.minecraft.coordinate.Vec3D;
 import de.adrodoc55.minecraft.structure.Entity;
 import de.adrodoc55.minecraft.structure.Structure;
 
@@ -26,10 +26,10 @@ public class CommandBlockMinecart implements Entity {
   /**
    * The relative position of this {@link CommandBlockMinecart} within a {@link Structure}.
    */
-  private final Coordinate3D coordinate;
+  private final Vec3D coordinate;
   private final List<String> tags = new ArrayList<>();
 
-  public CommandBlockMinecart(Command command, Coordinate3D coordinate) {
+  public CommandBlockMinecart(Command command, Vec3D coordinate) {
     this.command = checkNotNull(command, "command == null!");
     this.coordinate = checkNotNull(coordinate, "coordinate == null!");
   }
@@ -45,7 +45,7 @@ public class CommandBlockMinecart implements Entity {
    * @return the value of {@link #coordinate}
    */
   @Override
-  public Coordinate3D getCoordinate() {
+  public Vec3D getCoordinate() {
     return coordinate;
   }
 

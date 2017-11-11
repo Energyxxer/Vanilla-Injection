@@ -10,7 +10,7 @@ import java.util.ListIterator;
 
 import javax.annotation.Nullable;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.coordinate.Direction3;
 
 /**
@@ -32,7 +32,7 @@ class ChainPlacer<C extends Command> {
    *         before the {@code curve} ended
    */
   public static <C extends Command> List<CommandBlock<C>> place(List<? extends C> chain,
-      List<Coordinate3I> curve) throws NotEnoughSpaceException {
+      List<Vec3I> curve) throws NotEnoughSpaceException {
     return new ChainPlacer<C>(chain, curve).place();
   }
 
@@ -42,9 +42,9 @@ class ChainPlacer<C extends Command> {
   private static final Direction3 DEFAULT_DIRECTION = SOUTH;
 
   private final List<? extends C> chain;
-  private final List<? extends Coordinate3I> curve;
+  private final List<? extends Vec3I> curve;
 
-  public ChainPlacer(List<? extends C> chain, List<? extends Coordinate3I> curve) {
+  public ChainPlacer(List<? extends C> chain, List<? extends Vec3I> curve) {
     this.chain = checkNotNull(chain, "chain == null!");
     this.curve = checkNotNull(curve, "curve == null!");
     commandIterator = chain.listIterator();
@@ -52,7 +52,7 @@ class ChainPlacer<C extends Command> {
   }
 
   private ListIterator<? extends C> commandIterator;
-  private ListIterator<? extends Coordinate3I> coordinateIterator;
+  private ListIterator<? extends Vec3I> coordinateIterator;
 
   private static class Backup<C extends Command> {
     int commandIndex;
@@ -76,13 +76,13 @@ class ChainPlacer<C extends Command> {
    */
   private @Nullable Direction3 previousDirection;
   /**
-   * The {@link Coordinate3I} of the command block that is about to be placed.
+   * The {@link Vec3I} of the command block that is about to be placed.
    */
-  private Coordinate3I currentCoordinate;
+  private Vec3I currentCoordinate;
   /**
    * The {@link Direction3} of the command block that is about to be placed. If the current command
    * block is the last command block then {@link #currentDirection} equals
-   * {@link #previousDirection}, otherwise it points to the {@link Coordinate3I} of the next command
+   * {@link #previousDirection}, otherwise it points to the {@link Vec3I} of the next command
    * block.
    */
   private Direction3 currentDirection;
@@ -144,7 +144,7 @@ class ChainPlacer<C extends Command> {
     coordinateIterator = curve.listIterator(coordinateIndex);
     currentCoordinate = coordinateIterator.next();
     if (coordinateIndex > 0) {
-      Coordinate3I previousCoordinate = curve.get(coordinateIndex - 1);
+      Vec3I previousCoordinate = curve.get(coordinateIndex - 1);
       previousDirection = Direction3.valueOf(currentCoordinate.minus(previousCoordinate));
     } else {
       previousDirection = null;
@@ -164,7 +164,7 @@ class ChainPlacer<C extends Command> {
   private void updateCurrentDirection() {
     if (coordinateIterator.hasNext()) {
       coordinateIterator.next(); // Peek nextCoordinate
-      Coordinate3I nextCoordinate = coordinateIterator.previous();
+      Vec3I nextCoordinate = coordinateIterator.previous();
       currentDirection = Direction3.valueOf(nextCoordinate.minus(currentCoordinate));
     } else if (previousDirection != null) {
       currentDirection = previousDirection;

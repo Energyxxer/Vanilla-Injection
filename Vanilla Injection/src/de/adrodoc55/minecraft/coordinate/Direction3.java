@@ -12,12 +12,12 @@ import com.google.common.collect.Maps;
  * @author Adrodoc55
  */
 public enum Direction3 {
-  EAST(Coordinate3I.EAST, false, Axis3.X), //
-  WEST(Coordinate3I.WEST, true, Axis3.X), //
-  UP(Coordinate3I.UP, false, Axis3.Y), //
-  DOWN(Coordinate3I.DOWN, true, Axis3.Y), //
-  SOUTH(Coordinate3I.SOUTH, false, Axis3.Z), //
-  NORTH(Coordinate3I.NORTH, true, Axis3.Z), //
+  EAST(Vec3I.EAST, false, Axis3.X), //
+  WEST(Vec3I.WEST, true, Axis3.X), //
+  UP(Vec3I.UP, false, Axis3.Y), //
+  DOWN(Vec3I.DOWN, true, Axis3.Y), //
+  SOUTH(Vec3I.SOUTH, false, Axis3.Z), //
+  NORTH(Vec3I.NORTH, true, Axis3.Z), //
   ;
   private static final ImmutableList<Direction3> VALUES = ImmutableList.copyOf(values());
 
@@ -25,49 +25,49 @@ public enum Direction3 {
     return VALUES;
   }
 
-  private static final ImmutableMap<Coordinate3D, Direction3> INDEX_3D =
-      Maps.uniqueIndex(VALUES, Direction3::toCoordinate3D);
+  private static final ImmutableMap<Vec3D, Direction3> INDEX_3D =
+      Maps.uniqueIndex(VALUES, Direction3::toVec3D);
 
-  public static Direction3 valueOf(Coordinate3D coordinate) {
-    checkNotNull(coordinate, "coordinate == null!");
-    Direction3 result = INDEX_3D.get(coordinate);
+  public static Direction3 valueOf(Vec3D vec) {
+    checkNotNull(vec, "vec == null!");
+    Direction3 result = INDEX_3D.get(vec);
     if (result != null) {
       return result;
     }
-    throw new IllegalArgumentException("No enum constant for coordinate " + coordinate);
+    throw new IllegalArgumentException("No enum constant for " + vec);
   }
 
-  private static final ImmutableMap<Coordinate3I, Direction3> INDEX_3I =
-      Maps.uniqueIndex(VALUES, Direction3::toCoordinate3I);
+  private static final ImmutableMap<Vec3I, Direction3> INDEX_3I =
+      Maps.uniqueIndex(VALUES, Direction3::toVec3I);
 
-  public static Direction3 valueOf(Coordinate3I coordinate) {
-    checkNotNull(coordinate, "coordinate == null!");
-    Direction3 result = INDEX_3I.get(coordinate);
+  public static Direction3 valueOf(Vec3I vec) {
+    checkNotNull(vec, "vec == null!");
+    Direction3 result = INDEX_3I.get(vec);
     if (result != null) {
       return result;
     }
-    throw new IllegalArgumentException("No enum constant for coordinate " + coordinate);
+    throw new IllegalArgumentException("No enum constant for " + vec);
   }
 
   public static Direction3 valueOf(Axis3 axis, boolean negative) {
     return axis.getDirection(negative);
   }
 
-  private final Coordinate3I relative;
+  private final Vec3I relative;
   private final boolean negative;
   private final Axis3 axis;
 
-  private Direction3(Coordinate3I relative, boolean negative, Axis3 axis) {
-    this.relative = relative;
+  private Direction3(Vec3I relative, boolean negative, Axis3 axis) {
+    this.relative = checkNotNull(relative, "relative == null!");
     this.negative = negative;
     this.axis = axis;
   }
 
-  public Coordinate3I toCoordinate3I() {
+  public Vec3I toVec3I() {
     return relative;
   }
 
-  public Coordinate3D toCoordinate3D() {
+  public Vec3D toVec3D() {
     return relative.to3D();
   }
 

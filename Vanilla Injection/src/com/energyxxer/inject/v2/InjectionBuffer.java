@@ -26,9 +26,9 @@ import com.energyxxer.inject.structures.StructureBlock;
 import com.energyxxer.inject.v2.CommandBlock.Type;
 import com.google.common.collect.Iterables;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3D;
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
 import de.adrodoc55.minecraft.coordinate.Direction3;
+import de.adrodoc55.minecraft.coordinate.Vec3D;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.structure.SimpleBlock;
 import de.adrodoc55.minecraft.structure.SimpleBlockState;
 import de.adrodoc55.minecraft.structure.Structure;
@@ -154,14 +154,14 @@ class InjectionBuffer {
     Structure structure = new Structure(922, "Vanilla-Injection");
     structure.setBackground(new SimpleBlockState("minecraft:air"));
     String nextStructureName = getStructureName(structureId + 1);
-    structure.addBlock(new StructureBlock(new Coordinate3I(0, 0, 0), LOAD, nextStructureName));
-    structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Coordinate3I(0, 2, 0)));
-    structure.addBlock(new SimpleBlock("minecraft:activator_rail", new Coordinate3I(0, 3, 0)));
+    structure.addBlock(new StructureBlock(new Vec3I(0, 0, 0), LOAD, nextStructureName));
+    structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Vec3I(0, 2, 0)));
+    structure.addBlock(new SimpleBlock("minecraft:activator_rail", new Vec3I(0, 3, 0)));
 
-    structure.addBlock(new CommandBlock("setblock ~ ~-1 ~ stone", new Coordinate3I(0, 1, 1), DOWN,
-        CHAIN, false, true));
-    structure.addBlock(new CommandBlock("setblock ~ ~-2 ~ redstone_block",
-        new Coordinate3I(0, 2, 1), DOWN, REPEAT, false, false));
+    structure.addBlock(
+        new CommandBlock("setblock ~ ~-1 ~ stone", new Vec3I(0, 1, 1), DOWN, CHAIN, false, true));
+    structure.addBlock(new CommandBlock("setblock ~ ~-2 ~ redstone_block", new Vec3I(0, 2, 1), DOWN,
+        REPEAT, false, false));
 
     if (logAdminCommands) {
       minecartCommands.add(0, new Command("gamerule logAdminCommands true"));
@@ -172,7 +172,7 @@ class InjectionBuffer {
 
     int x = 2, y = 0, z = 0;
     for (Command command : impulseCommands) {
-      Coordinate3I coordinate = new Coordinate3I(x, y, z);
+      Vec3I coordinate = new Vec3I(x, y, z);
       Direction3 direction = Direction3.SOUTH;
       Type type = z == 0 ? IMPULSE : CHAIN;
       boolean conditional = false;
@@ -189,7 +189,7 @@ class InjectionBuffer {
     return structure;
   }
 
-  private static final Coordinate3D MINECART_POS = new Coordinate3D(0.5, 3.0625, 0.5);
+  private static final Vec3D MINECART_POS = new Vec3D(0.5, 3.0625, 0.5);
 
   private CommandBlockMinecart newCommandBlockMinecart(int structureId, Command command) {
     CommandBlockMinecart result = new CommandBlockMinecart(command, MINECART_POS);

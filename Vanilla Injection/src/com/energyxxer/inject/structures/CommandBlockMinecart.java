@@ -10,7 +10,7 @@ import com.evilco.mc.nbt.tag.TagCompound;
 import com.evilco.mc.nbt.tag.TagList;
 import com.evilco.mc.nbt.tag.TagString;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3D;
+import de.adrodoc55.minecraft.coordinate.Vec3D;
 import de.adrodoc55.minecraft.structure.Entity;
 
 /**
@@ -134,8 +134,8 @@ public class CommandBlockMinecart implements Entity {
 
 
     @Override
-    public Coordinate3D getCoordinate() {
-      return new Coordinate3D(pos.x + 0.5, pos.y + 0.0625, pos.z + 0.5);
+    public Vec3D getCoordinate() {
+      return new Vec3D(pos.x + 0.5, pos.y + 0.0625, pos.z + 0.5);
     }
 
     @Override

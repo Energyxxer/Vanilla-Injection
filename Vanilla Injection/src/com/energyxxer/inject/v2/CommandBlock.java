@@ -10,7 +10,7 @@ import javax.annotation.concurrent.Immutable;
 import com.evilco.mc.nbt.tag.TagByte;
 import com.evilco.mc.nbt.tag.TagCompound;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.coordinate.Direction3;
 import de.adrodoc55.minecraft.structure.Block;
 import de.adrodoc55.minecraft.structure.Structure;
@@ -49,18 +49,18 @@ public class CommandBlock implements Block {
   }
 
   private final Command command;
-  private final Coordinate3I coordinate;
+  private final Vec3I coordinate;
   private final Direction3 direction;
   private final Type type;
   private final boolean conditional;
   private final boolean auto;
 
-  public CommandBlock(String command, Coordinate3I coordinate, Direction3 direction, Type type,
+  public CommandBlock(String command, Vec3I coordinate, Direction3 direction, Type type,
       boolean conditional, boolean auto) {
     this(new Command(command), coordinate, direction, type, conditional, auto);
   }
 
-  public CommandBlock(Command command, Coordinate3I coordinate, Direction3 direction, Type type,
+  public CommandBlock(Command command, Vec3I coordinate, Direction3 direction, Type type,
       boolean conditional, boolean auto) {
     this.command = checkNotNull(command, "command == null!");
     this.coordinate = checkNotNull(coordinate, "coordinate == null!");
@@ -81,7 +81,7 @@ public class CommandBlock implements Block {
    * @return the value of {@link #coordinate}
    */
   @Override
-  public Coordinate3I getCoordinate() {
+  public Vec3I getCoordinate() {
     return coordinate;
   }
 

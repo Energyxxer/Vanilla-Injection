@@ -11,20 +11,20 @@ import javax.annotation.concurrent.Immutable;
 import com.google.common.collect.Collections2;
 
 /**
- * A three dimensional {@code int} coordinate.
+ * A three dimensional {@code int} vector, can be used as a coordinate or size.
  *
  * @author Adrodoc55
  */
 @Immutable
-public class Coordinate3I implements Cloneable {
-  public static final Coordinate3I SELF = new Coordinate3I(0, 0, 0);
-  public static final Coordinate3I EAST = new Coordinate3I(1, 0, 0);
-  public static final Coordinate3I WEST = new Coordinate3I(-1, 0, 0);
-  public static final Coordinate3I UP = new Coordinate3I(0, 1, 0);
-  public static final Coordinate3I DOWN = new Coordinate3I(0, -1, 0);
-  public static final Coordinate3I SOUTH = new Coordinate3I(0, 0, 1);
-  public static final Coordinate3I NORTH = new Coordinate3I(0, 0, -1);
-  private static final Collection<Coordinate3I> DIRECTIONS = new ArrayList<Coordinate3I>(6);
+public class Vec3I implements Cloneable {
+  public static final Vec3I SELF = new Vec3I(0, 0, 0);
+  public static final Vec3I EAST = new Vec3I(1, 0, 0);
+  public static final Vec3I WEST = new Vec3I(-1, 0, 0);
+  public static final Vec3I UP = new Vec3I(0, 1, 0);
+  public static final Vec3I DOWN = new Vec3I(0, -1, 0);
+  public static final Vec3I SOUTH = new Vec3I(0, 0, 1);
+  public static final Vec3I NORTH = new Vec3I(0, 0, -1);
+  private static final Collection<Vec3I> DIRECTIONS = new ArrayList<Vec3I>(6);
 
   static {
     DIRECTIONS.add(EAST);
@@ -35,28 +35,28 @@ public class Coordinate3I implements Cloneable {
     DIRECTIONS.add(NORTH);
   }
 
-  public static Optional<Coordinate3I> min(Collection<Coordinate3I> coordinates) {
-    return coordinates.stream().reduce(Coordinate3I::min);
+  public static Optional<Vec3I> min(Collection<Vec3I> elements) {
+    return elements.stream().reduce(Vec3I::min);
   }
 
-  public static Optional<Coordinate3I> max(Collection<Coordinate3I> coordinates) {
-    return coordinates.stream().reduce(Coordinate3I::max);
+  public static Optional<Vec3I> max(Collection<Vec3I> elements) {
+    return elements.stream().reduce(Vec3I::max);
   }
 
-  public static Coordinate3I min(Coordinate3I a, Coordinate3I b) {
+  public static Vec3I min(Vec3I a, Vec3I b) {
     return getBinaryOperator(Math::min).apply(a, b);
   }
 
-  public static Coordinate3I max(Coordinate3I a, Coordinate3I b) {
+  public static Vec3I max(Vec3I a, Vec3I b) {
     return getBinaryOperator(Math::max).apply(a, b);
   }
 
-  private static BinaryOperator<Coordinate3I> getBinaryOperator(IntBinaryOperator op) {
+  private static BinaryOperator<Vec3I> getBinaryOperator(IntBinaryOperator op) {
     return (a, b) -> {
       int x = op.applyAsInt(a.x, b.x);
       int y = op.applyAsInt(a.y, b.y);
       int z = op.applyAsInt(a.z, b.z);
-      return new Coordinate3I(x, y, z);
+      return new Vec3I(x, y, z);
     };
   }
 
@@ -64,26 +64,26 @@ public class Coordinate3I implements Cloneable {
   public final int y;
   public final int z;
 
-  public Coordinate3I() {
+  public Vec3I() {
     this(0);
   }
 
-  public Coordinate3I(int side) {
+  public Vec3I(int side) {
     this(side, side, side);
   }
 
-  public Coordinate3I(int x, int y, int z) {
+  public Vec3I(int x, int y, int z) {
     this.x = x;
     this.y = y;
     this.z = z;
   }
 
-  public Coordinate3I(Coordinate3I other) {
+  public Vec3I(Vec3I other) {
     this(other.x, other.y, other.z);
   }
 
-  public Coordinate3I copy() {
-    return new Coordinate3I(this);
+  public Vec3I copy() {
+    return new Vec3I(this);
   }
 
   @Override
@@ -96,8 +96,8 @@ public class Coordinate3I implements Cloneable {
     }
   }
 
-  public Coordinate3D to3D() {
-    return new Coordinate3D(x, y, z);
+  public Vec3D to3D() {
+    return new Vec3D(x, y, z);
   }
 
   /**
@@ -127,18 +127,18 @@ public class Coordinate3I implements Cloneable {
     return z;
   }
 
-  public Coordinate3I plus(Coordinate3I other) {
+  public Vec3I plus(Vec3I other) {
     int x = this.x + other.x;
     int y = this.y + other.y;
     int z = this.z + other.z;
-    return new Coordinate3I(x, y, z);
+    return new Vec3I(x, y, z);
   }
 
-  public Coordinate3I minus(Coordinate3I other) {
+  public Vec3I minus(Vec3I other) {
     int x = this.x - other.x;
     int y = this.y - other.y;
     int z = this.z - other.z;
-    return new Coordinate3I(x, y, z);
+    return new Vec3I(x, y, z);
   }
 
   public int get(Axis3 axis) {
@@ -154,21 +154,21 @@ public class Coordinate3I implements Cloneable {
     }
   }
 
-  public Coordinate3I plus(int scalar, Direction3 direction) {
+  public Vec3I plus(int scalar, Direction3 direction) {
     scalar = direction.isNegative() ? -scalar : scalar;
     return plus(scalar, direction.getAxis());
   }
 
-  public Coordinate3I plus(int scalar, Axis3 axis) {
+  public Vec3I plus(int scalar, Axis3 axis) {
     return axis.plus(this, scalar);
   }
 
-  public Coordinate3I minus(int scalar, Direction3 direction) {
+  public Vec3I minus(int scalar, Direction3 direction) {
     scalar = direction.isNegative() ? -scalar : scalar;
     return minus(scalar, direction.getAxis());
   }
 
-  public Coordinate3I minus(int scalar, Axis3 axis) {
+  public Vec3I minus(int scalar, Axis3 axis) {
     return plus(-scalar, axis);
   }
 
@@ -176,13 +176,13 @@ public class Coordinate3I implements Cloneable {
    * Simple scalar multiplication.
    *
    * @param scalar to multiply this with
-   * @return a copy of this coordinate that is multiplied with the scalar
+   * @return a copy of {@code this} {@link Vec3I} that is multiplied with the scalar
    */
-  public Coordinate3I mult(int scalar) {
+  public Vec3I mult(int scalar) {
     int x = this.x * scalar;
     int y = this.y * scalar;
     int z = this.z * scalar;
-    return new Coordinate3I(x, y, z);
+    return new Vec3I(x, y, z);
   }
 
   public String toAbsoluteString() {
@@ -200,7 +200,7 @@ public class Coordinate3I implements Cloneable {
     return String.valueOf(d);
   }
 
-  public Collection<Coordinate3I> getAdjacent() {
+  public Collection<Vec3I> getAdjacent() {
     return Collections2.transform(DIRECTIONS, this::plus);
   }
 
@@ -226,7 +226,7 @@ public class Coordinate3I implements Cloneable {
       return false;
     if (getClass() != obj.getClass())
       return false;
-    Coordinate3I other = (Coordinate3I) obj;
+    Vec3I other = (Vec3I) obj;
     if (Double.doubleToLongBits(x) != Double.doubleToLongBits(other.x))
       return false;
     if (Double.doubleToLongBits(y) != Double.doubleToLongBits(other.y))
@@ -238,6 +238,6 @@ public class Coordinate3I implements Cloneable {
 
   @Override
   public String toString() {
-    return "Coordinate3D [x=" + x + ", y=" + y + ", z=" + z + "]";
+    return "Vec3I [x=" + x + ", y=" + y + ", z=" + z + "]";
   }
 }

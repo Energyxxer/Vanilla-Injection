@@ -1,6 +1,6 @@
 package de.adrodoc55.minecraft.structure;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 
 /**
  * A Minecraft <a href="https://minecraft.gamepedia.com/Block">block</a> that can be added to a
@@ -10,9 +10,9 @@ import de.adrodoc55.minecraft.coordinate.Coordinate3I;
  */
 public interface Block extends BlockState {
   /**
-   * The relative position of this {@link Block} within a {@link Structure}.
+   * The relative coordinate of this {@link Block} within a {@link Structure}.
    *
-   * @return relative position
+   * @return relative coordinate
    */
-  Coordinate3I getCoordinate();
+  Vec3I getCoordinate();
 }

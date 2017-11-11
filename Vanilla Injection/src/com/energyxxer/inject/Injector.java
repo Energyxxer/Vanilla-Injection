@@ -22,7 +22,7 @@ import com.energyxxer.inject.utils.Vector3D;
 import com.evilco.mc.nbt.stream.NbtOutputStream;
 import com.evilco.mc.nbt.tag.TagCompound;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.structure.SimpleBlock;
 import de.adrodoc55.minecraft.structure.SimpleBlockState;
 import de.adrodoc55.minecraft.structure.Structure;
@@ -352,7 +352,7 @@ public class Injector {
 
         Structure structure = new Structure(922, "Vanilla-Injection");
         structure.setBackground(new SimpleBlockState("minecraft:air"));
-        structure.addBlock(new StructureBlock(new Coordinate3I(), LOAD, "inject/" + master.prefix + (structureID + 1)));
+        structure.addBlock(new StructureBlock(new Vec3I(), LOAD, "inject/" + master.prefix + (structureID + 1)));
 
         if(structureID % 10 == 0) {
             insertFetchCommand("gamerule logAdminCommands true","$" + master.prefix + structureID);
@@ -369,8 +369,8 @@ public class Injector {
         structure.addBlocks(repeatingCommandBuffer);
         structure.addBlocks(commandBuffer);
 
-        structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Coordinate3I(0,0,2)));
-        SimpleBlock activatorRail = new SimpleBlock("minecraft:activator_rail", new Coordinate3I(0,1,2));
+        structure.addBlock(new SimpleBlock("minecraft:redstone_block", new Vec3I(0,0,2)));
+        SimpleBlock activatorRail = new SimpleBlock("minecraft:activator_rail", new Vec3I(0,1,2));
         activatorRail.putProperty("powered","true");
         activatorRail.putProperty("shape","north_south");
         structure.addBlock(activatorRail);

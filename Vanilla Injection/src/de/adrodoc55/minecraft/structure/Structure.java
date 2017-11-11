@@ -26,8 +26,8 @@ import com.evilco.mc.nbt.tag.TagString;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3D;
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3D;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 
 /**
  * A {@link Structure} is used to build the contents of a
@@ -38,26 +38,26 @@ import de.adrodoc55.minecraft.coordinate.Coordinate3I;
  * @author Adrodoc55
  */
 public class Structure {
-  static List<ITag> toNbt(Coordinate3D coordinate) {
+  static List<ITag> toNbt(Vec3D pos) {
     return Arrays.asList(//
-        new TagDouble("", coordinate.x), //
-        new TagDouble("", coordinate.y), //
-        new TagDouble("", coordinate.z) //
+        new TagDouble("", pos.x), //
+        new TagDouble("", pos.y), //
+        new TagDouble("", pos.z) //
     );
   }
 
-  static List<ITag> toNbt(Coordinate3I coordinate) {
+  static List<ITag> toNbt(Vec3I pos) {
     return Arrays.asList(//
-        new TagInteger("", coordinate.x), //
-        new TagInteger("", coordinate.y), //
-        new TagInteger("", coordinate.z) //
+        new TagInteger("", pos.x), //
+        new TagInteger("", pos.y), //
+        new TagInteger("", pos.z) //
     );
   }
 
   /**
    * The {@link Block}s of this {@link Structure}.
    */
-  private final Map<Coordinate3I, Block> blocks = new LinkedHashMap<>();
+  private final Map<Vec3I, Block> blocks = new LinkedHashMap<>();
   /**
    * The {@link Entity entities} of this {@link Structure}.
    */
@@ -150,7 +150,7 @@ public class Structure {
    * @throws IllegalArgumentException if there is already a {@link Block} at the same coordinate
    */
   public void addBlock(Block block) throws IllegalArgumentException {
-    Coordinate3I coordinate = block.getCoordinate();
+    Vec3I coordinate = block.getCoordinate();
     if (blocks.containsKey(coordinate)) {
       throw new IllegalArgumentException(
           "There is already a block associated with the coordinate " + coordinate);
@@ -206,15 +206,15 @@ public class Structure {
    *
    * @return the required size
    */
-  public Coordinate3I getSize() {
+  public Vec3I getSize() {
     return Stream.concat(//
         blocks.keySet().stream(), //
         entities.stream()//
             .map(Entity::getCoordinate)//
-            .map(Coordinate3D::floor)//
-    ).reduce(Coordinate3I::max)//
-        .map(c -> c.plus(new Coordinate3I(1, 1, 1)))//
-        .orElse(new Coordinate3I());
+            .map(Vec3D::floor)//
+    ).reduce(Vec3I::max)//
+        .map(c -> c.plus(new Vec3I(1, 1, 1)))//
+        .orElse(new Vec3I());
   }
 
   /**
@@ -243,13 +243,13 @@ public class Structure {
     TagCompound result = new TagCompound("");
     result.setTag(new TagInteger("DataVersion", dataVersion));
     result.setTag(new TagString("author", author));
-    Coordinate3I size = getSize();
+    Vec3I size = getSize();
     List<Block> blocks = new ArrayList<>(this.blocks.values());
     if (background != null) {
       for (int x = 0; x < size.getX(); x++) {
         for (int y = 0; y < size.getY(); y++) {
           for (int z = 0; z < size.getZ(); z++) {
-            Coordinate3I coordinate = new Coordinate3I(x, y, z);
+            Vec3I coordinate = new Vec3I(x, y, z);
             if (!this.blocks.containsKey(coordinate)) {
               blocks.add(new SimpleBlock(background, coordinate));
             }

@@ -8,7 +8,7 @@ import com.evilco.mc.nbt.tag.TagByte;
 import com.evilco.mc.nbt.tag.TagCompound;
 import com.evilco.mc.nbt.tag.TagString;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.structure.Block;
 
 /**
@@ -296,8 +296,8 @@ public class CommandBlock implements Block {
     }
 
     @Override
-    public Coordinate3I getCoordinate() {
-      return new Coordinate3I(pos.x, pos.y,pos. z);
+    public Vec3I getCoordinate() {
+      return new Vec3I(pos.x, pos.y,pos. z);
     }
 
     @Override
