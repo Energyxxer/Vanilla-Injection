@@ -126,7 +126,7 @@ public class CommandBlockPlacer {
     // Initialized to minimal side length of a cube that can hold all commands
     int sideLength = DoubleMath.roundToInt(Math.cbrt(chain.size()), CEILING);
     while (true) {
-      // -1 because the corners of ChainPlacer.place are inclusive
+      // -1 because the corners of getSpaceFillingCurve are inclusive
       Vec3I estimatedMax = Vec3I.min(max, min.plus(new Vec3I(sideLength - 1)));
       List<Vec3I> curve = getSpaceFillingCurve(min, estimatedMax, orientation);
       try {

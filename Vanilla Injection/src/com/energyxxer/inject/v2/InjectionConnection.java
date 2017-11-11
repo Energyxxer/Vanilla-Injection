@@ -36,6 +36,7 @@ import com.energyxxer.inject.listeners.SuccessEvent;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Ints;
 
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.structure.Structure;
 
 /**
@@ -343,7 +344,7 @@ public class InjectionConnection implements AutoCloseable {
   /**
    * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
    */
-  private synchronized void checkOpen() throws IllegalStateException {
+  private void checkOpen() throws IllegalStateException {
     checkState(isOpen(), "This connection is not established!");
   }
 
@@ -518,6 +519,34 @@ public class InjectionConnection implements AutoCloseable {
     lastConfirmedStructureId = structureId;
   }
 
+  /**
+   * @return the value of {@link InjectionBuffer#impulseSize}
+   */
+  public Vec3I getImpulseSize() {
+    return injectionBuffer.getImpulseSize();
+  }
+
+  /**
+   * @param impulseSize the new value of {@link InjectionBuffer#impulseSize}
+   */
+  public void setImpulseSize(Vec3I impulseSize) {
+    injectionBuffer.setImpulseSize(impulseSize);
+  }
+
+  /**
+   * @return the value of {@link InjectionBuffer#repeatSize}
+   */
+  public Vec3I getRepeatSize() {
+    return injectionBuffer.getRepeatSize();
+  }
+
+  /**
+   * @param repeatSize the new value of {@link InjectionBuffer#repeatSize}
+   */
+  public void setRepeatSize(Vec3I repeatSize) {
+    injectionBuffer.setRepeatSize(repeatSize);
+  }
+
   public void injectCommand(String command) throws IllegalStateException {
     injectCommand(new Command(command));
   }
@@ -558,6 +587,27 @@ public class InjectionConnection implements AutoCloseable {
       throws IllegalStateException {
     logObserver.addSuccessListener(command.getName(), false, listener);
     injectionBuffer.addImpulseFetchCommand(command);
+  }
+
+  public void injectRepeatCommand(String command) throws IllegalStateException {
+    injectRepeatCommand(new Command(command));
+  }
+
+  public void injectRepeatCommand(Command command) throws IllegalStateException {
+    checkOpen();
+    injectionBuffer.addRepeatCommand(command);
+  }
+
+  public void injectRepeatCommand(String command, Consumer<SuccessEvent> listener)
+      throws IllegalStateException {
+    String name = UUID.randomUUID().toString();
+    injectRepeatCommand(new Command(name, command), listener);
+  }
+
+  public void injectRepeatCommand(Command command, Consumer<SuccessEvent> listener)
+      throws IllegalStateException {
+    logObserver.addSuccessListener(command.getName(), false, listener);
+    injectionBuffer.addRepeatFetchCommand(command);
   }
 
   @Override

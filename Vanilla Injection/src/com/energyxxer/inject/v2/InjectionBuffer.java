@@ -5,7 +5,7 @@ import static com.energyxxer.inject.v2.CommandBlock.Type.CHAIN;
 import static com.energyxxer.inject.v2.CommandBlock.Type.IMPULSE;
 import static com.energyxxer.inject.v2.CommandBlock.Type.REPEAT;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.concat;
+import static de.adrodoc55.minecraft.coordinate.Axis3.X;
 import static de.adrodoc55.minecraft.coordinate.Direction3.DOWN;
 
 import java.util.ArrayList;
@@ -26,9 +26,11 @@ import com.energyxxer.inject.structures.StructureBlock;
 import com.energyxxer.inject.v2.CommandBlock.Type;
 import com.google.common.collect.Iterables;
 
-import de.adrodoc55.minecraft.coordinate.Direction3;
 import de.adrodoc55.minecraft.coordinate.Vec3D;
 import de.adrodoc55.minecraft.coordinate.Vec3I;
+import de.adrodoc55.minecraft.placement.CommandBlockFactory;
+import de.adrodoc55.minecraft.placement.CommandBlockPlacer;
+import de.adrodoc55.minecraft.placement.NotEnoughSpaceException;
 import de.adrodoc55.minecraft.structure.SimpleBlock;
 import de.adrodoc55.minecraft.structure.SimpleBlockState;
 import de.adrodoc55.minecraft.structure.Structure;
@@ -45,6 +47,20 @@ class InjectionBuffer {
    * a {@link Structure} name.
    */
   private final IntFunction<String> getStructureName;
+
+  /**
+   * The maximal size for the impulse command section of the structure files.
+   */
+  private Vec3I impulseSize = new Vec3I(8, 5, 5);
+
+  /**
+   * The maximal size for the repeat command section of the structure files.
+   */
+  private Vec3I repeatSize = new Vec3I(2, 5, 5);
+
+  private final Collection<Command> minecartCommands = new ConcurrentLinkedQueue<>();
+  private final Collection<Command> impulseCommands = new ConcurrentLinkedQueue<>();
+  private final Collection<Command> repeatCommands = new ConcurrentLinkedQueue<>();
 
   /**
    * This flag indicates whether or not the next call to {@link #createStructure(int)} should
@@ -74,15 +90,40 @@ class InjectionBuffer {
    */
   private final ReadWriteLock logAdminCommandsLock = new ReentrantReadWriteLock();
 
-  private final Collection<Command> minecartCommands = new ConcurrentLinkedQueue<>();
-  private final Collection<Command> impulseCommands = new ConcurrentLinkedQueue<>();
-
   public InjectionBuffer(IntFunction<String> getStructureName) {
     this.getStructureName = checkNotNull(getStructureName, "getStructureName == null!");
   }
 
   private String getStructureName(int structureId) {
     return getStructureName.apply(structureId);
+  }
+
+  /**
+   * @return the value of {@link #impulseSize}
+   */
+  public Vec3I getImpulseSize() {
+    return impulseSize;
+  }
+
+  /**
+   * @param impulseSize the new value of {@link #impulseSize}
+   */
+  public void setImpulseSize(Vec3I impulseSize) {
+    this.impulseSize = checkNotNull(impulseSize, "impulseSize == null!");
+  }
+
+  /**
+   * @return the value of {@link #repeatSize}
+   */
+  public Vec3I getRepeatSize() {
+    return repeatSize;
+  }
+
+  /**
+   * @param repeatSize the new value of {@link #repeatSize}
+   */
+  public void setRepeatSize(Vec3I repeatSize) {
+    this.repeatSize = checkNotNull(repeatSize, "repeatSize == null!");
   }
 
   public void addMinecartCommand(Command command) throws IllegalStateException {
@@ -113,6 +154,20 @@ class InjectionBuffer {
     }
   }
 
+  public void addRepeatCommand(Command command) throws IllegalStateException {
+    repeatCommands.add(command);
+  }
+
+  public void addRepeatFetchCommand(Command command) throws IllegalStateException {
+    logAdminCommandsLock.readLock().lock();
+    try {
+      addRepeatCommand(command);
+      logAdminCommands = true;
+    } finally {
+      logAdminCommandsLock.readLock().unlock();
+    }
+  }
+
   private boolean isEmpty() {
     return minecartCommands.isEmpty() && impulseCommands.isEmpty();
   }
@@ -132,6 +187,7 @@ class InjectionBuffer {
     boolean logAdminCommands = this.logAdminCommands; // This copy is used after releasing the lock
     List<Command> minecartCommands;
     List<Command> impulseCommands;
+    List<Command> repeatCommands;
     try {
       if (isEmpty()) {
         LOGGER.trace("Skipping creation of structure {} due to empty buffer", structureId);
@@ -146,11 +202,28 @@ class InjectionBuffer {
       for (Command command : Iterables.consumingIterable(this.impulseCommands)) {
         impulseCommands.add(command);
       }
+      repeatCommands = new ArrayList<>(this.repeatCommands.size());
+      for (Command command : Iterables.consumingIterable(this.repeatCommands)) {
+        repeatCommands.add(command);
+      }
     } finally {
       // this buffer no longer contains fetch commands, releasing lock
       logAdminCommandsLock.writeLock().unlock();
     }
-    LOGGER.debug("Creating structure from commands {}", concat(minecartCommands, impulseCommands));
+    if (logAdminCommands) {
+      minecartCommands.add(0, new Command("gamerule logAdminCommands true"));
+      minecartCommands.add(new Command("gamerule logAdminCommands false"));
+      impulseCommands.add(0, new Command("gamerule logAdminCommands true"));
+      impulseCommands.add(new Command("gamerule logAdminCommands false"));
+      repeatCommands.add(0, new Command("gamerule logAdminCommands true"));
+      repeatCommands.add(new Command("gamerule logAdminCommands false"));
+    }
+
+    LOGGER.debug("Creating structure");
+    LOGGER.debug("minecartCommands {}", minecartCommands);
+    LOGGER.debug("impulseCommands {}", impulseCommands);
+    LOGGER.debug("repeatCommands {}", repeatCommands);
+
     Structure structure = new Structure(922, "Vanilla-Injection");
     structure.setBackground(new SimpleBlockState("minecraft:air"));
     String nextStructureName = getStructureName(structureId + 1);
@@ -163,29 +236,18 @@ class InjectionBuffer {
     structure.addBlock(new CommandBlock("setblock ~ ~-2 ~ redstone_block", new Vec3I(0, 2, 1), DOWN,
         REPEAT, false, false));
 
-    if (logAdminCommands) {
-      minecartCommands.add(0, new Command("gamerule logAdminCommands true"));
-      minecartCommands.add(new Command("gamerule logAdminCommands false"));
-      impulseCommands.add(0, new Command("gamerule logAdminCommands true"));
-      impulseCommands.add(new Command("gamerule logAdminCommands false"));
-    }
-
-    int x = 2, y = 0, z = 0;
-    for (Command command : impulseCommands) {
-      Vec3I coordinate = new Vec3I(x, y, z);
-      Direction3 direction = Direction3.SOUTH;
-      Type type = z == 0 ? IMPULSE : CHAIN;
-      boolean conditional = false;
-      boolean auto = true;
-      structure.addBlock(new CommandBlock(command, coordinate, direction, type, conditional, auto));
-      z++;
-    }
-
     minecartCommands.add(new Command(
         "kill @e[type=commandblock_minecart,dy=0,tag=" + getStructureName(structureId) + "]"));
     for (Command command : minecartCommands) {
       structure.addEntity(newCommandBlockMinecart(structureId, command));
     }
+
+    Vec3I impulseStart = new Vec3I(2, 0, 0);
+    structure.addBlocks(createCommandBlocks(IMPULSE, impulseStart, impulseSize, impulseCommands));
+
+    Vec3I repeatStart = impulseStart.plus(impulseSize.x, X);
+    structure.addBlocks(createCommandBlocks(REPEAT, repeatStart, repeatSize, repeatCommands));
+
     return structure;
   }
 
@@ -195,5 +257,27 @@ class InjectionBuffer {
     CommandBlockMinecart result = new CommandBlockMinecart(command, MINECART_POS);
     result.addTag(getStructureName(structureId));
     return result;
+  }
+
+  private Collection<CommandBlock> createCommandBlocks(Type type, Vec3I start, Vec3I size,
+      List<Command> commands) {
+    Vec3I max = start.plus(size);
+    CommandBlockFactory<Command, CommandBlock> factory = newCommandBlockFactory(type);
+    try {
+      return CommandBlockPlacer.place(commands, start, max, factory);
+    } catch (NotEnoughSpaceException ex) {
+      // TODO: custom BufferOverflowException
+      throw new RuntimeException(ex);
+    }
+  }
+
+  private CommandBlockFactory<Command, CommandBlock> newCommandBlockFactory(Type initialType) {
+    return (indexInChain, command, coordinate, direction) -> {
+      command = command != null ? command : new Command("");
+      Type type = indexInChain == 0 ? initialType : CHAIN;
+      boolean conditional = command.isConditional();
+      boolean auto = true;
+      return new CommandBlock(command, coordinate, direction, type, conditional, auto);
+    };
   }
 }

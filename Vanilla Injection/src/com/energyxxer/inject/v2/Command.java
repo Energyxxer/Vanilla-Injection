@@ -15,7 +15,7 @@ import com.evilco.mc.nbt.tag.TagString;
  * @author Adrodoc55
  */
 @Immutable
-public class Command {
+public class Command implements de.adrodoc55.minecraft.placement.Command {
   /**
    * The CustomName for this {@link Command}'s container (either the {@link CommandBlock} or
    * {@link CommandBlockMinecart}).
@@ -60,6 +60,11 @@ public class Command {
    */
   public boolean isTrackOutput() {
     return trackOutput;
+  }
+
+  @Override
+  public boolean isConditional() {
+    return false;
   }
 
   public TagCompound toNbt() {
