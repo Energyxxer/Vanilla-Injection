@@ -38,15 +38,23 @@ public class Coordinate3D implements Cloneable {
     DIRECTIONS.add(NORTH);
   }
 
-  public static Optional<Coordinate3D> getMin(Collection<Coordinate3D> coordinates) {
-    return coordinates.stream().reduce(getBinaryOperator(Math::min));
+  public static Optional<Coordinate3D> min(Collection<Coordinate3D> coordinates) {
+    return coordinates.stream().reduce(Coordinate3D::min);
   }
 
-  public static Optional<Coordinate3D> getMax(Collection<Coordinate3D> coordinates) {
-    return coordinates.stream().reduce(getBinaryOperator(Math::max));
+  public static Optional<Coordinate3D> max(Collection<Coordinate3D> coordinates) {
+    return coordinates.stream().reduce(Coordinate3D::max);
   }
 
-  public static BinaryOperator<Coordinate3D> getBinaryOperator(DoubleBinaryOperator op) {
+  public static Coordinate3D min(Coordinate3D a, Coordinate3D b) {
+    return getBinaryOperator(Math::min).apply(a, b);
+  }
+
+  public static Coordinate3D max(Coordinate3D a, Coordinate3D b) {
+    return getBinaryOperator(Math::max).apply(a, b);
+  }
+
+  private static BinaryOperator<Coordinate3D> getBinaryOperator(DoubleBinaryOperator op) {
     return (a, b) -> {
       double x = op.applyAsDouble(a.x, b.x);
       double y = op.applyAsDouble(a.y, b.y);
@@ -60,7 +68,11 @@ public class Coordinate3D implements Cloneable {
   public final double z;
 
   public Coordinate3D() {
-    this(0, 0, 0);
+    this(0);
+  }
+
+  public Coordinate3D(double side) {
+    this(side, side, side);
   }
 
   public Coordinate3D(double x, double y, double z) {

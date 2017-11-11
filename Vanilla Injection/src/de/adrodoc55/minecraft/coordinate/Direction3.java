@@ -71,6 +71,10 @@ public enum Direction3 {
     return relative.to3D();
   }
 
+  public boolean isPositive() {
+    return !negative;
+  }
+
   public boolean isNegative() {
     return negative;
   }

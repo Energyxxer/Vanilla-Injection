@@ -212,7 +212,7 @@ public class Structure {
         entities.stream()//
             .map(Entity::getCoordinate)//
             .map(Coordinate3D::floor)//
-    ).reduce(Coordinate3I.getBinaryOperator(Math::max))//
+    ).reduce(Coordinate3I::max)//
         .map(c -> c.plus(new Coordinate3I(1, 1, 1)))//
         .orElse(new Coordinate3I());
   }

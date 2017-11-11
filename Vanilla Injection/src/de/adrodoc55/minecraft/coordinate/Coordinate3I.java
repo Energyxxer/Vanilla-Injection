@@ -35,15 +35,23 @@ public class Coordinate3I implements Cloneable {
     DIRECTIONS.add(NORTH);
   }
 
-  public static Optional<Coordinate3I> getMin(Collection<Coordinate3I> coordinates) {
-    return coordinates.stream().reduce(getBinaryOperator(Math::min));
+  public static Optional<Coordinate3I> min(Collection<Coordinate3I> coordinates) {
+    return coordinates.stream().reduce(Coordinate3I::min);
   }
 
-  public static Optional<Coordinate3I> getMax(Collection<Coordinate3I> coordinates) {
-    return coordinates.stream().reduce(getBinaryOperator(Math::max));
+  public static Optional<Coordinate3I> max(Collection<Coordinate3I> coordinates) {
+    return coordinates.stream().reduce(Coordinate3I::max);
   }
 
-  public static BinaryOperator<Coordinate3I> getBinaryOperator(IntBinaryOperator op) {
+  public static Coordinate3I min(Coordinate3I a, Coordinate3I b) {
+    return getBinaryOperator(Math::min).apply(a, b);
+  }
+
+  public static Coordinate3I max(Coordinate3I a, Coordinate3I b) {
+    return getBinaryOperator(Math::max).apply(a, b);
+  }
+
+  private static BinaryOperator<Coordinate3I> getBinaryOperator(IntBinaryOperator op) {
     return (a, b) -> {
       int x = op.applyAsInt(a.x, b.x);
       int y = op.applyAsInt(a.y, b.y);
@@ -57,7 +65,11 @@ public class Coordinate3I implements Cloneable {
   public final int z;
 
   public Coordinate3I() {
-    this(0, 0, 0);
+    this(0);
+  }
+
+  public Coordinate3I(int side) {
+    this(side, side, side);
   }
 
   public Coordinate3I(int x, int y, int z) {
@@ -133,8 +145,8 @@ public class Coordinate3I implements Cloneable {
     return axis.of(this);
   }
 
-  public double get(Direction3 d) {
-    double value = get(d.getAxis());
+  public int get(Direction3 d) {
+    int value = get(d.getAxis());
     if (d.isNegative()) {
       return -value;
     } else {
