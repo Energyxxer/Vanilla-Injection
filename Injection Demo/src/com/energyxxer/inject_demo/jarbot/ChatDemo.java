@@ -1,18 +1,22 @@
 package com.energyxxer.inject_demo.jarbot;
 
-import com.energyxxer.inject.InjectionMaster;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
+
+import com.energyxxer.inject.v2.InjectionConnection;
 import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;
-
-import java.io.File;
 
 /**
  * Created by User on 4/11/2017.
  */
 public class ChatDemo implements SetupListener {
 
-    private static InjectionMaster master;
+    private static InjectionConnection connection;
 
     private ChatDemo() {
         new DisplayWindow("Jarbot", Commons.WORLD_NAME, this);
@@ -24,15 +28,17 @@ public class ChatDemo implements SetupListener {
 
     @Override
     public void onSetup(File log, File world) {
-        master = new InjectionMaster(world, log, "jarbot");
-        master.setLogCheckFrequency(500);
-        master.setInjectionFrequency(500);
+        try {
+          connection = new InjectionConnection(log.toPath(), world.toPath(), "jarbot");
+        } catch (IOException | InterruptedException ex) {
+          throw new UndeclaredThrowableException(ex);
+        }
+        connection.getLogObserver().setLogCheckFrequency(500, MILLISECONDS);
+        connection.setFlushFrequency(500, MILLISECONDS);
 
-        master.addChatListener(l -> {
+        connection.getLogObserver().addChatListener(l -> {
             if(l.getMessage().charAt(0) != '.') answer(Jarbot.ask(l.getMessage()));
         });
-
-        master.start();
     }
 
     private static void answer(String message) {
@@ -40,7 +46,7 @@ public class ChatDemo implements SetupListener {
     }
 
     private static void answer(String message, String username) {
-        master.injector.insertImpulseCommand("tellraw " + ((username != null) ? username : "@a") + " [{\"text\":\"§8[§bJarbot§8] \"},{\"text\":\"" + message.replace("\\","\\\\").replace("\"","\\\"") + "\",\"color\":\"gray\"}]");
-        master.injector.insertImpulseCommand("function lab:jarbot_graphics/voice/talk");
+        connection.injectImpulseCommand("tellraw " + ((username != null) ? username : "@a") + " [{\"text\":\"§8[§bJarbot§8] \"},{\"text\":\"" + message.replace("\\","\\\\").replace("\"","\\\"") + "\",\"color\":\"gray\"}]");
+        connection.injectImpulseCommand("function lab:jarbot_graphics/voice/talk");
     }
 }

@@ -1,19 +1,22 @@
 package com.energyxxer.inject_demo.warps;
 
-import com.energyxxer.inject.InjectionMaster;
-import com.energyxxer.inject_demo.common.Commons;
-import com.energyxxer.inject_demo.common.DisplayWindow;
-import com.energyxxer.inject_demo.common.SetupListener;
-import com.energyxxer.inject_demo.util.Transform;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
+
+import com.energyxxer.inject.v2.InjectionConnection;
+import com.energyxxer.inject_demo.common.Commons;
+import com.energyxxer.inject_demo.common.DisplayWindow;
+import com.energyxxer.inject_demo.common.SetupListener;
+import com.energyxxer.inject_demo.util.Transform;
 
 /**
  * Created by User on 4/11/2017.
@@ -22,7 +25,7 @@ public class WarpSystem implements SetupListener {
 
     private File warpLogFile = null;
 
-    private static InjectionMaster master;
+    private static InjectionConnection connection;
     private static HashMap<String, Transform> warps;
 
     private static int commandID = 0;
@@ -39,10 +42,14 @@ public class WarpSystem implements SetupListener {
 
     @Override
     public void onSetup(File log, File world) {
-        master = new InjectionMaster(world, log, "warp");
+        try {
+          connection = new InjectionConnection(log.toPath(), world.toPath(), "warp");
+        } catch (IOException | InterruptedException ex) {
+          throw new UndeclaredThrowableException(ex);
+        }
         warpLogFile = new File(world.getAbsolutePath() + File.separator + "warps.txt");
-        master.setLogCheckFrequency(500);
-        master.setInjectionFrequency(500);
+        connection.getLogObserver().setLogCheckFrequency(500, MILLISECONDS);
+        connection.setFlushFrequency(500, MILLISECONDS);
 
         warps = new HashMap<>();
 
@@ -54,25 +61,25 @@ public class WarpSystem implements SetupListener {
 
         load();
 
-        master.addChatListener(m -> {
+        connection.getLogObserver().addChatListener(m -> {
             if(m.getMessage().split(" ",2)[0].equals(".warp")) {
                 String[] args = m.getMessage().split(" ");
                 if(args.length < 2) {
-                    master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage:\n    warp <warp name>\n    warp set <warp name>\n    warp remove <warp name>\n    warp list\",\"color\":\"red\"}");
+                    connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage:\n    warp <warp name>\n    warp set <warp name>\n    warp remove <warp name>\n    warp list\",\"color\":\"red\"}");
                 } else if(args[1].equals("set")) {
                     if(args.length < 3) {
-                        master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp set <warp name>\",\"color\":\"red\"}");
+                        connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp set <warp name>\",\"color\":\"red\"}");
                     } else {
                         if(reservedKeys.contains(args[2])) {
-                            master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Name '" + args[2] + "' is a reserved keyword.\",\"color\":\"red\"}");
+                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Name '" + args[2] + "' is a reserved keyword.\",\"color\":\"red\"}");
                         } else if(warps.containsKey(args[2])) {
-                            master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[2] + "' already exists!\",\"color\":\"red\"}");
+                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[2] + "' already exists!\",\"color\":\"red\"}");
                         } else {
                             int currentCommandID = commandID++;
                             String name = "$warpSet" + currentCommandID;
-                            master.injector.insertFetchCommand("execute " + m.getSender() + " ~ ~ ~ summon area_effect_cloud ~ ~ ~ {CustomName:\"" + name + "\"}");
-                            master.injector.insertFetchCommand("tp @e[type=area_effect_cloud,name=" + name + "] " + m.getSender());
-                            master.injector.insertFetchCommand("entitydata @e[type=area_effect_cloud,name=" + name + "] {fe:tch}", l -> {
+                            connection.injectCommand("execute " + m.getSender() + " ~ ~ ~ summon area_effect_cloud ~ ~ ~ {CustomName:\"" + name + "\"}");
+                            connection.injectCommand("tp @e[type=area_effect_cloud,name=" + name + "] " + m.getSender());
+                            connection.injectCommand("entitydata @e[type=area_effect_cloud,name=" + name + "] {fe:tch}", l -> {
                                 Transform warpTransform = new Transform();
 
                                 //Pos
@@ -95,25 +102,25 @@ public class WarpSystem implements SetupListener {
                                 warpTransform.pitch = Float.parseFloat(rot[1]);
 
                                 warps.put(args[2], warpTransform);
-                                master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warp '" + args[2] + "' has been set.\",\"color\":\"green\"}");
+                                connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warp '" + args[2] + "' has been set.\",\"color\":\"green\"}");
                                 save();
                             });
                         }
                     }
                 } else if(args[1].equals("remove")) {
                     if(args.length < 3) {
-                        master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp remove <warp name>\",\"color\":\"red\"}");
+                        connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp remove <warp name>\",\"color\":\"red\"}");
                     } else {
                         if(warps.containsKey(args[2])) {
                             warps.remove(args[2]);
-                            master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warp '" + args[2] + "' has been removed.\",\"color\":\"green\"}");
+                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warp '" + args[2] + "' has been removed.\",\"color\":\"green\"}");
                             save();
                         } else {
-                            master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[2] + "' doesn't exist!\",\"color\":\"red\"}");
+                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[2] + "' doesn't exist!\",\"color\":\"red\"}");
                         }
                     }
                 } else if(args[1].equals("list")) {
-                    if(warps.isEmpty()) master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"There are no warps.\",\"color\":\"yellow\"}");
+                    if(warps.isEmpty()) connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"There are no warps.\",\"color\":\"yellow\"}");
                     else {
                         StringBuilder list = new StringBuilder();
                         for(String key : warps.keySet()) {
@@ -131,26 +138,24 @@ public class WarpSystem implements SetupListener {
                             list.append("'\"},");
                             list.append("\"color\":\"dark_aqua\"}");
                         }
-                        master.injector.insertImpulseCommand("tellraw " + m.getSender() + " [{\"text\":\"List of warps (" + warps.size() + "):\",\"color\":\"aqua\"}" + list + "]");
+                        connection.injectImpulseCommand("tellraw " + m.getSender() + " [{\"text\":\"List of warps (" + warps.size() + "):\",\"color\":\"aqua\"}" + list + "]");
                     }
                 } else {
                     if(args.length < 2) {
-                        master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp <warp name>\",\"color\":\"red\"}");
+                        connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp <warp name>\",\"color\":\"red\"}");
                     } else {
                         if(warps.containsKey(args[1])) {
-                            master.injector.insertImpulseCommand("tp " + m.getSender() + " " + warps.get(args[1]));
-                            master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warping to '" + args[1] + "'\",\"color\":\"yellow\"}");
+                            connection.injectImpulseCommand("tp " + m.getSender() + " " + warps.get(args[1]));
+                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warping to '" + args[1] + "'\",\"color\":\"yellow\"}");
                         } else {
-                            master.injector.insertImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[1] + "' doesn't exist!\",\"color\":\"red\"}");
+                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[1] + "' doesn't exist!\",\"color\":\"red\"}");
                         }
                     }
                 }
             }
         });
 
-        master.start();
-
-        master.injector.insertImpulseCommand("tellraw @a {\"text\":\"§3[§bWarps§3] §3Warp systems online.\"}");
+        connection.injectImpulseCommand("tellraw @a {\"text\":\"§3[§bWarps§3] §3Warp systems online.\"}");
     }
 
     private void load() {

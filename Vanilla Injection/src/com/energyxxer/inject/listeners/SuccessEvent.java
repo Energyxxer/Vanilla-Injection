@@ -15,8 +15,6 @@ import javax.annotation.Nullable;
 public class SuccessEvent {
   private static final Pattern pattern =
       Pattern.compile("\\[(\\d\\d):(\\d\\d):(\\d\\d)\\] \\[Server thread/INFO\\]: \\[(.+?): (.+)]");
-  // private static final int TIMESTAMP_LENGTH = "[00:00:00]".length();
-  // private static final String PREFIX = " [Server thread/INFO]: [";
 
   /**
    * Attempts to create a {@link SuccessEvent} from the given log line matching this pattern:
@@ -41,20 +39,6 @@ public class SuccessEvent {
       String message = matcher.group(5);
       return new SuccessEvent(timestamp, invoker, message);
     }
-
-    // int colonIndex = line.indexOf(": ", TIMESTAMP_LENGTH + PREFIX.length());
-    // if (line.length() >= TIMESTAMP_LENGTH + PREFIX.length()//
-    // && line.charAt(0) == '['//
-    // && line.charAt(TIMESTAMP_LENGTH - 1) == ']'//
-    // && line.startsWith(PREFIX, TIMESTAMP_LENGTH)//
-    // && colonIndex != -1//
-    // && line.endsWith("]")//
-    // ) {
-    // String timestamp = line.substring(0, TIMESTAMP_LENGTH);
-    // String invoker = line.substring(TIMESTAMP_LENGTH, TIMESTAMP_LENGTH + PREFIX.length());
-    // String message = line.substring(colonIndex + 2, line.length() - 1);
-    // return new SuccessEvent(timestamp, invoker, message);
-    // }
     return null;
   }
 
@@ -114,27 +98,5 @@ public class SuccessEvent {
   @Override
   public String toString() {
     return timestamp + " [" + invoker + ": " + message + "]";
-  }
-
-  /**
-   * Attempts to create a SuccessEvent from the given log line matching this pattern: <br>
-   * <code>[<em>timestamp</em>] [Server thread/INFO]: [<em>invoker</em>: <em>message</em>]</code>
-   *
-   * @param line The log line to create a SuccessEvent from.
-   * @param name The name of the entity to run the command.
-   *
-   * @return A SuccessEvent representing this log line, if it matches the pattern. Returns
-   *         <code>null</code> otherwise.
-   */
-  @Deprecated
-  public static SuccessEvent createFromLogLine(String line, String name) {
-    String header = "[Server thread/INFO]: [" + name + ": ";
-    int index = line.indexOf(header);
-    if (index >= 0 && index < 15) {
-      String timestamp = line.substring(0, index - 1);
-      String str = line.substring(index + header.length());
-      return new SuccessEvent(LocalTime.parse(timestamp), name, str.substring(0, str.length() - 1));
-    }
-    return null;
   }
 }

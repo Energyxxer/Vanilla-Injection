@@ -37,22 +37,22 @@ public class TreeBranch {
 
         for(int i = 0; i <= length; i++) {
 
-            tree.injector.insertImpulseCommand(execute + "setblock ~" + (int) bPos.x + " ~" + bPos.y + " ~" + (int) bPos.z + " minecraft:log2 variant=dark_oak,axis=none");
+            tree.connection.injectImpulseCommand(execute + "setblock ~" + (int) bPos.x + " ~" + bPos.y + " ~" + (int) bPos.z + " minecraft:log2 variant=dark_oak,axis=none");
             if(i / length < 0.2) { //Thicker
-                tree.injector.insertImpulseCommand(execute + "fill ~" + ((int) bPos.x - 1) + " ~" + (bPos.y - 1) + " ~" + ((int) bPos.z) + " ~" + ((int) bPos.x + 1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air *");
-                tree.injector.insertImpulseCommand(execute + "fill ~" + ((int) bPos.x) + " ~" + (bPos.y - 1) + " ~" + ((int) bPos.z - 1) + " ~" + ((int) bPos.x) + " ~" + (bPos.y) + " ~" + ((int) bPos.z + 1) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air *");
-                tree.injector.insertImpulseCommand(execute + "fill ~" + ((int) bPos.x - 1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z - 1) + " ~" + ((int) bPos.x + 1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z + 1) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air *");
+                tree.connection.injectImpulseCommand(execute + "fill ~" + ((int) bPos.x - 1) + " ~" + (bPos.y - 1) + " ~" + ((int) bPos.z) + " ~" + ((int) bPos.x + 1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air *");
+                tree.connection.injectImpulseCommand(execute + "fill ~" + ((int) bPos.x) + " ~" + (bPos.y - 1) + " ~" + ((int) bPos.z - 1) + " ~" + ((int) bPos.x) + " ~" + (bPos.y) + " ~" + ((int) bPos.z + 1) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air *");
+                tree.connection.injectImpulseCommand(execute + "fill ~" + ((int) bPos.x - 1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z - 1) + " ~" + ((int) bPos.x + 1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z + 1) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air *");
             } else { //Not as thick
-                tree.injector.insertImpulseCommand(execute + "fill ~" + ((int) bPos.x-1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z) + " ~" + ((int) bPos.x+1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air");
-                tree.injector.insertImpulseCommand(execute + "fill ~" + ((int) bPos.x) + " ~" + (bPos.y-1) + " ~" + ((int) bPos.z) + " ~" + ((int) bPos.x) + " ~" + (bPos.y+1) + " ~" + ((int) bPos.z) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air");
-                tree.injector.insertImpulseCommand(execute + "fill ~" + ((int) bPos.x) + " ~" + (bPos.y) + " ~" + ((int) bPos.z-1) + " ~" + ((int) bPos.x) + " ~" + (bPos.y) + " ~" + ((int) bPos.z+1) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                tree.connection.injectImpulseCommand(execute + "fill ~" + ((int) bPos.x-1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z) + " ~" + ((int) bPos.x+1) + " ~" + (bPos.y) + " ~" + ((int) bPos.z) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                tree.connection.injectImpulseCommand(execute + "fill ~" + ((int) bPos.x) + " ~" + (bPos.y-1) + " ~" + ((int) bPos.z) + " ~" + ((int) bPos.x) + " ~" + (bPos.y+1) + " ~" + ((int) bPos.z) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                tree.connection.injectImpulseCommand(execute + "fill ~" + ((int) bPos.x) + " ~" + (bPos.y) + " ~" + ((int) bPos.z-1) + " ~" + ((int) bPos.x) + " ~" + (bPos.y) + " ~" + ((int) bPos.z+1) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air");
             }
 
             bPos.x += Math.cos(angle);
             bPos.y += (i / length) * -incline;
             bPos.z += Math.sin(angle);
         }
-        tree.injector.insertImpulseCommand(execute + "setblock ~" + (int) bPos.x + " ~" + bPos.y + " ~" + (int) bPos.z + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false keep");
+        tree.connection.injectImpulseCommand(execute + "setblock ~" + (int) bPos.x + " ~" + bPos.y + " ~" + (int) bPos.z + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false keep");
     }
 
     private static double getLengthFactor(double y, double height) {

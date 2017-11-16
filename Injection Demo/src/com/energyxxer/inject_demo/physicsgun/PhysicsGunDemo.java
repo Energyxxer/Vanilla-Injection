@@ -1,14 +1,21 @@
 package com.energyxxer.inject_demo.physicsgun;
 
-import com.energyxxer.inject.InjectionMaster;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.HashMap;
+
+import javax.swing.Timer;
+
 import com.energyxxer.inject.utils.Vector3D;
+import com.energyxxer.inject.v2.Command;
+import com.energyxxer.inject.v2.InjectionConnection;
 import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;
 import com.energyxxer.inject_demo.util.Transform;
-
-import java.io.File;
-import java.util.HashMap;
 
 /**
  * Created by User on 4/19/2017.
@@ -20,7 +27,7 @@ public class PhysicsGunDemo implements SetupListener {
 
     private static final double SCROLL_STEP = 0.5;
 
-    private static InjectionMaster master;
+    private static InjectionConnection connection;
 
     private static HashMap<String, PGPlayerInfo> playerInfo = new HashMap<>();
 
@@ -34,13 +41,16 @@ public class PhysicsGunDemo implements SetupListener {
 
     @Override
     public void onSetup(File log, File world) {
-        master = new InjectionMaster(world, log, "physicsgun");
-        master.setLogCheckFrequency(100);
-        master.setInjectionFrequency(50);
-        master.setProcessingFrequency(100);
+        try {
+          connection = new InjectionConnection(log.toPath(), world.toPath(), "physicsgun");
+        } catch (IOException | InterruptedException ex) {
+          throw new UndeclaredThrowableException(ex);
+        }
+        connection.getLogObserver().setLogCheckFrequency(100, MILLISECONDS);
+        connection.setFlushFrequency(50, MILLISECONDS);
 
         //When player state has changed (1: Attempt to grab an entity, 3: Attempt to launch/drop an entity)
-        master.addLogListener(l -> {
+        connection.getLogObserver().addLogListener(l -> {
             String text = l.getLine();
             String leadingText = "Set score of pg_state for player ";
             if(!text.startsWith("[Server thread/INFO]: [",11) || !text.contains(leadingText)) return;
@@ -58,31 +68,31 @@ public class PhysicsGunDemo implements SetupListener {
                     for(double i = 1; i <= MAX_REACH; i++) {
                         Vector3D.Double vec = player.transform.forward(i);
                         vec.translate(0,PGPlayerInfo.EYE_LEVEL,0);
-                        master.injector.insertImpulseCommand("execute " + username + " " + vec + " scoreboard players tag @e[name=!" + username + ",r=2] add pg_control_" + username + "$0");
+                        connection.injectImpulseCommand("execute " + username + " " + vec + " scoreboard players tag @e[name=!" + username + ",r=2] add pg_control_" + username + "$0");
                     }
                     //Tagging the closest matching entity
-                    master.injector.insertImpulseCommand("execute " + username + " ~ ~ ~ scoreboard players tag @e[tag=pg_control_" + username + "$0,c=1] add pg_control_" + username);
+                    connection.injectImpulseCommand("execute " + username + " ~ ~ ~ scoreboard players tag @e[tag=pg_control_" + username + "$0,c=1] add pg_control_" + username);
                     //Set player's state to 2 (if entity found)
-                    master.injector.insertImpulseCommand("execute @e[tag=pg_control_" + username + "] ~ ~ ~ scoreboard players set " + username + " pg_state 2");
+                    connection.injectImpulseCommand("execute @e[tag=pg_control_" + username + "] ~ ~ ~ scoreboard players set " + username + " pg_state 2");
                     //Setting entity to have no gravity (if entity found)
-                    master.injector.insertImpulseCommand("entitydata @e[tag=pg_control_" + username + "] {NoGravity:1b}");
+                    connection.injectImpulseCommand("entitydata @e[tag=pg_control_" + username + "] {NoGravity:1b}");
                     //Setting up entity's position getter
-                    master.injector.insertImpulseCommand("execute @e[tag=pg_control_" + username + "] ~ ~ ~ summon area_effect_cloud ~ ~ ~ {CustomName:\"$pgControlTransform#" + username + "\",Duration:2}");
-                    master.injector.insertImpulseCommand("execute @e[tag=pg_control_" + username + "] ~ ~ ~ teleport @e[type=area_effect_cloud,name=$pgControlTransform#" + username + "] ~ ~ ~ ~ ~");
+                    connection.injectImpulseCommand("execute @e[tag=pg_control_" + username + "] ~ ~ ~ summon area_effect_cloud ~ ~ ~ {CustomName:\"$pgControlTransform#" + username + "\",Duration:2}");
+                    connection.injectImpulseCommand("execute @e[tag=pg_control_" + username + "] ~ ~ ~ teleport @e[type=area_effect_cloud,name=$pgControlTransform#" + username + "] ~ ~ ~ ~ ~");
                     //Commands from this point on will see their output in the logs
-                    master.injector.insertImpulseCommand("gamerule logAdminCommands true");
+                    connection.injectImpulseCommand("gamerule logAdminCommands true");
                     //Remove temporary tags from matching entities (keeping the closest one with its own tag). If this succeeds, this player's "active" field will be set to true
-                    master.injector.insertImpulseCommand("scoreboard players tag @e[tag=pg_control_" + username + "$0] remove pg_control_" + username + "$0", "$pgEnable:" + username);
+                    connection.injectImpulseCommand(new Command("$pgEnable:" + username, "scoreboard players tag @e[tag=pg_control_" + username + "$0] remove pg_control_" + username + "$0"));
                     //Get the controlled entity's position
-                    master.injector.insertImpulseCommand("entitydata @e[type=area_effect_cloud,name=$pgControlTransform#" + username + "] {pg:\"transform2\"}","pg_control_" + username);
+                    connection.injectImpulseCommand(new Command("pg_control_" + username, "entitydata @e[type=area_effect_cloud,name=$pgControlTransform#" + username + "] {pg:\"transform2\"}"));
                     //Set player's state back to 0 if no entities were found
-                    master.injector.insertImpulseCommand("scoreboard players set @a[name=" + username + ",score_pg_state_min=1,score_pg_state=1] pg_state 0","$pgDisable:" + username);
+                    connection.injectImpulseCommand(new Command("$pgDisable:" + username, "scoreboard players set @a[name=" + username + ",score_pg_state_min=1,score_pg_state=1] pg_state 0"));
                     //Disable command logging
-                    master.injector.insertImpulseCommand("gamerule logAdminCommands false");
+                    connection.injectImpulseCommand("gamerule logAdminCommands false");
                 } else {
                     //Technically this block should never run
                     playerInfo.put(username, new PGPlayerInfo(username));
-                    master.injector.insertImpulseCommand("tellraw @a {\"text\":\"[WARNING]: Player '" + username + "' requested an action but wasn't found on the player database.\",\"color\":\"yellow\"}");
+                    connection.injectImpulseCommand("tellraw @a {\"text\":\"[WARNING]: Player '" + username + "' requested an action but wasn't found on the player database.\",\"color\":\"yellow\"}");
                 }
             } else if(stage == 3) {
                 if(playerInfo.containsKey(username)) {
@@ -98,21 +108,21 @@ public class PhysicsGunDemo implements SetupListener {
                     forward.y *= 2 * MAX_REACH / player.distance;
                     forward.z *= 2 * MAX_REACH / player.distance;
 
-                    master.injector.insertImpulseCommand("execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ playsound minecraft:entity.ghast.shoot master @a ~ ~ ~ 1 1 0");
-                    master.injector.insertImpulseCommand("execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ playsound minecraft:entity.zombie.attack_iron_door master @a ~ ~ ~ 1 1 0");
-                    master.injector.insertImpulseCommand("entitydata @e[tag=pg_control_" + username + "] {NoGravity:0b}");
-                    master.injector.insertImpulseCommand("execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ entitydata @e[tag=pg_control_" + username + "] {Motion:[" + forward.x + "," + forward.y + "," + forward.z + "]}");
-                    master.injector.insertImpulseCommand("execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ execute @e[tag=pg_control_" + username + "] ~ ~ ~ particle largesmoke ~ ~0.5 ~ 0 0 0 " + (MAX_REACH / player.distance) + " " + (int) (2 * (MAX_REACH - player.distance)) + " force");
-                    master.injector.insertImpulseCommand("scoreboard players set " + username + " pg_state 0");
-                    master.injector.insertImpulseCommand("scoreboard players tag @e[tag=pg_control_" + username + "] remove pg_control_" + username);
+                    connection.injectImpulseCommand("execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ playsound minecraft:entity.ghast.shoot master @a ~ ~ ~ 1 1 0");
+                    connection.injectImpulseCommand("execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ playsound minecraft:entity.zombie.attack_iron_door master @a ~ ~ ~ 1 1 0");
+                    connection.injectImpulseCommand("entitydata @e[tag=pg_control_" + username + "] {NoGravity:0b}");
+                    connection.injectImpulseCommand("execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ entitydata @e[tag=pg_control_" + username + "] {Motion:[" + forward.x + "," + forward.y + "," + forward.z + "]}");
+                    connection.injectImpulseCommand("execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ execute @e[tag=pg_control_" + username + "] ~ ~ ~ particle largesmoke ~ ~0.5 ~ 0 0 0 " + (MAX_REACH / player.distance) + " " + (int) (2 * (MAX_REACH - player.distance)) + " force");
+                    connection.injectImpulseCommand("scoreboard players set " + username + " pg_state 0");
+                    connection.injectImpulseCommand("scoreboard players tag @e[tag=pg_control_" + username + "] remove pg_control_" + username);
                 } else {
                     playerInfo.put(username, new PGPlayerInfo(username));
-                    master.injector.insertImpulseCommand("tellraw @a {\"text\":\"[WARNING]: Player '" + username + "' requested an action but wasn't found on the player database.\",\"color\":\"yellow\"}");
+                    connection.injectImpulseCommand("tellraw @a {\"text\":\"[WARNING]: Player '" + username + "' requested an action but wasn't found on the player database.\",\"color\":\"yellow\"}");
                 }
             }
         });
 
-        master.addLogListener(l -> {
+        connection.getLogObserver().addLogListener(l -> {
             String line = l.getLine();
             String leadingText = "Set score of pg_distChange for player ";
             if(!line.startsWith("[Server thread/INFO]: [",11) || !line.contains(leadingText)) return;
@@ -134,7 +144,7 @@ public class PhysicsGunDemo implements SetupListener {
             player.distance = Math.max(Math.min(player.distance, MAX_REACH), MIN_REACH);
         });
 
-        master.addLogListener(e -> {
+        connection.getLogObserver().addLogListener(e -> {
             String text = e.getLine();
             if(text.startsWith("[Server thread/INFO]: [",11) && text.contains(",pg:\"transform\",")) {
                 String username = text.substring(34,text.indexOf(':',34));
@@ -194,7 +204,7 @@ public class PhysicsGunDemo implements SetupListener {
             }
         });
 
-        master.addProcessingTickListener(() -> {
+        Timer timer = new Timer(100, e -> {
             for(PGPlayerInfo player : playerInfo.values()) {
                 if(player.active) {
                     Vector3D.Double forward = player.transform.forward(player.distance).translated(0,PGPlayerInfo.EYE_LEVEL - 0.5,0);
@@ -202,14 +212,14 @@ public class PhysicsGunDemo implements SetupListener {
                     forward.y -= player.transform.y;
                     forward.z -= player.transform.z;
 
-                    master.injector.insertRepeatingCommand("execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ teleport @e[tag=pg_control_" + player.username + "] ~" + forward.x + " ~" + forward.y + " ~" + forward.z);
-                    master.injector.insertRepeatingCommand("execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ execute @e[tag=pg_control_" + player.username + "] ~ ~ ~ particle reddust ~ ~0.5 ~ 0.0001 0.75 1 1 0 force");
-                    master.injector.insertRepeatingCommand("execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ playsound minecraft:entity.guardian.ambient player @a ~ ~ ~ 1.0 1.5 0.0");
+                    connection.injectRepeatCommand("execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ teleport @e[tag=pg_control_" + player.username + "] ~" + forward.x + " ~" + forward.y + " ~" + forward.z);
+                    connection.injectRepeatCommand("execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ execute @e[tag=pg_control_" + player.username + "] ~ ~ ~ particle reddust ~ ~0.5 ~ 0.0001 0.75 1 1 0 force");
+                    connection.injectRepeatCommand("execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ playsound minecraft:entity.guardian.ambient player @a ~ ~ ~ 1.0 1.5 0.0");
                 }
             }
         });
 
-        master.start();
+        timer.start();
     }
 
     private static Transform getTransform(String line) {

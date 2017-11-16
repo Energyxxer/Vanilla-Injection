@@ -1,15 +1,15 @@
 package com.energyxxer.inject_demo.treegen;
 
-import com.energyxxer.inject.Injector;
-import com.energyxxer.inject.utils.Vector3D;
-
 import java.util.Random;
+
+import com.energyxxer.inject.utils.Vector3D;
+import com.energyxxer.inject.v2.InjectionConnection;
 
 /**
  * Created by User on 4/12/2017.
  */
 public class Tree {
-    public final Injector injector;
+    public final InjectionConnection connection;
     public final Random random = new Random();
 
     private static int minTreeHeight = 20;
@@ -29,8 +29,8 @@ public class Tree {
     double globalInclineFactor;
     double mcInclineAngle;
 
-    public Tree(Injector injector) {
-        this.injector = injector;
+    public Tree(InjectionConnection connection) {
+        this.connection = connection;
     }
 
     void generate() {
@@ -91,11 +91,11 @@ public class Tree {
         for(int y = 0; y < treeHeight; y++) {
             double heightFactor = (double) y / treeHeight;
 
-            injector.insertImpulseCommand(execute + "setblock ~" + (int) pos.x + " ~" + pos.y + " ~" + (int) pos.z + " minecraft:log2 variant=dark_oak,axis=none");
+            connection.injectImpulseCommand(execute + "setblock ~" + (int) pos.x + " ~" + pos.y + " ~" + (int) pos.z + " minecraft:log2 variant=dark_oak,axis=none");
             for(int d = 0; d < 8; d++) {
                 if(y <= rootHeights[d]) {
                     Vector3D offset = rootOffsets[d];
-                    injector.insertImpulseCommand(execute + "setblock ~" + ((int) pos.x + offset.x) + " ~" + pos.y + " ~" + ((int) pos.z + offset.z) + " minecraft:log2 variant=dark_oak,axis=none");
+                    connection.injectImpulseCommand(execute + "setblock ~" + ((int) pos.x + offset.x) + " ~" + pos.y + " ~" + ((int) pos.z + offset.z) + " minecraft:log2 variant=dark_oak,axis=none");
                 }
             }
 
@@ -109,9 +109,9 @@ public class Tree {
             }
 
             if(y > 6) {
-                injector.insertImpulseCommand(execute + "fill ~" + ((int) pos.x-1) + " ~" + (pos.y) + " ~" + ((int) pos.z) + " ~" + ((int) pos.x+1) + " ~" + (pos.y) + " ~" + ((int) pos.z) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
-                injector.insertImpulseCommand(execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y-1) + " ~" + ((int) pos.z) + " ~" + ((int) pos.x) + " ~" + (pos.y+1) + " ~" + ((int) pos.z) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
-                injector.insertImpulseCommand(execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z-1) + " ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z+1) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                connection.injectImpulseCommand(execute + "fill ~" + ((int) pos.x-1) + " ~" + (pos.y) + " ~" + ((int) pos.z) + " ~" + ((int) pos.x+1) + " ~" + (pos.y) + " ~" + ((int) pos.z) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                connection.injectImpulseCommand(execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y-1) + " ~" + ((int) pos.z) + " ~" + ((int) pos.x) + " ~" + (pos.y+1) + " ~" + ((int) pos.z) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                connection.injectImpulseCommand(execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z-1) + " ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z+1) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
             }
 
             pos.y++;
