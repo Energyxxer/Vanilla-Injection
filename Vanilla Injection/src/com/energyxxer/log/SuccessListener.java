@@ -7,15 +7,15 @@ import java.util.function.Consumer;
 /**
  * @author Adrodoc55
  */
-public class SuccessListenerEntry {
+public class SuccessListener {
   private final String invoker;
   private final boolean repeat;
-  private final Consumer<SuccessEvent> listener;
+  private final Consumer<SuccessEvent> consumer;
 
-  public SuccessListenerEntry(String invoker, boolean repeat, Consumer<SuccessEvent> listener) {
+  public SuccessListener(String invoker, boolean repeat, Consumer<SuccessEvent> consumer) {
     this.invoker = checkNotNull(invoker, "invoker == null!");
     this.repeat = repeat;
-    this.listener = checkNotNull(listener, "listener == null!");
+    this.consumer = checkNotNull(consumer, "consumer == null!");
   }
 
   /**
@@ -33,15 +33,15 @@ public class SuccessListenerEntry {
   }
 
   /**
-   * @return the value of {@link #listener}
+   * @return the value of {@link #consumer}
    */
-  public Consumer<SuccessEvent> getListener() {
-    return listener;
+  public Consumer<SuccessEvent> getConsumer() {
+    return consumer;
   }
 
   @Override
   public String toString() {
-    return "SuccessListenerEntry [invoker=" + invoker + ", repeat=" + repeat + ", listener="
-        + listener + "]";
+    return "SuccessListener [invoker=" + invoker + ", repeat=" + repeat + ", consumer=" + consumer
+        + "]";
   }
 }

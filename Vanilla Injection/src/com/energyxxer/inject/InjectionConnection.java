@@ -16,7 +16,11 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -35,6 +39,7 @@ import org.apache.logging.log4j.core.util.Integers;
 import com.energyxxer.inject.structure.Command;
 import com.energyxxer.log.MinecraftLogObserver;
 import com.energyxxer.log.SuccessEvent;
+import com.energyxxer.log.SuccessListener;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Ints;
 
@@ -131,6 +136,23 @@ public class InjectionConnection implements AutoCloseable {
    * operations a timeout check is injected by {@link #injectTimeoutCheckIfNeccessary(int)}.
    */
   private int lastConfirmedStructureId = -1;
+
+  /**
+   * A mapping of the success listeners added to {@link #logObserver} by {@code this} connection.
+   * The key is the {@link #structureId} of the {@link Structure} that contains the corresponding
+   * commands of the listeners.<br>
+   * This mapping is used to deregister old success listeners when it is clear that the
+   * corresponding commands have been removed by a newer structure. A deregistration is neccessary
+   * for
+   * <ul>
+   * <li>Success listeners of impulse/minecart commands that failed and thus never reported a
+   * success.</li>
+   * <li>Success listeners of repeat commands, because these don't deregister themselfs after the
+   * first success.</li>
+   * </ul>
+   */
+  private final ConcurrentMap<Integer, ConcurrentLinkedQueue<SuccessListener>> successListeners =
+      new ConcurrentHashMap<>();
 
   /**
    * Create and {@link #open()} a new {@link InjectionConnection} with the specified parameters.
@@ -556,7 +578,8 @@ public class InjectionConnection implements AutoCloseable {
   }
 
   /**
-   * Update {@link #lastConfirmedStructureId} and delete old {@link Structure} files.
+   * Delete old {@link Structure} files, deregister old success listener and update
+   * {@link #lastConfirmedStructureId}.
    *
    * @param structureId the ID of the new {@link #lastConfirmedStructureId}
    */
@@ -572,14 +595,43 @@ public class InjectionConnection implements AutoCloseable {
       logger.debug("cleaning up old structure files, ID {} up to {}", i, structureId);
     }
     for (; i <= structureId; i++) {
-      Path structureFile = getStructureFile(i);
-      try {
-        Files.deleteIfExists(structureFile);
-      } catch (IOException ex) {
-        logger.warn("Failed to clean up old structure file", ex);
-      }
+      deleteStructureFile(i);
+      // i - 1 because listeners for the currently loaded structure are still active
+      removeSuccessListeners(i - 1);
     }
     lastConfirmedStructureId = structureId;
+  }
+
+  private void deleteStructureFile(int structureId) {
+    Path structureFile = getStructureFile(structureId);
+    try {
+      Files.deleteIfExists(structureFile);
+    } catch (IOException ex) {
+      logger.warn("Failed to clean up old structure file", ex);
+    }
+  }
+
+  private void removeSuccessListeners(int structureId) {
+    Collection<SuccessListener> oldSuccessListeners = successListeners.get(structureId);
+    successListeners.remove(structureId);
+    if (oldSuccessListeners != null) {
+      for (SuccessListener oldListener : oldSuccessListeners) {
+        logObserver.removeSuccessListener(oldListener);
+      }
+    }
+  }
+
+  private void addSuccessListener(String name, boolean repeat, Consumer<SuccessEvent> consumer) {
+    addSuccessListener(new SuccessListener(name, repeat, consumer));
+  }
+
+  private void addSuccessListener(SuccessListener successListener) {
+    logObserver.addSuccessListener(successListener);
+    // Because we don't synchronize here the structureId might be to high already.
+    // This is ok, because it just means that the listener might be deregistered a bit later.
+    int structureId = this.structureId.get();
+    successListeners.computeIfAbsent(structureId, id -> new ConcurrentLinkedQueue<>())
+        .add(successListener);
   }
 
   /**
@@ -628,8 +680,8 @@ public class InjectionConnection implements AutoCloseable {
   public void injectAsMinecart(Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     checkOpen();
-    logObserver.addSuccessListener(command.getName(), false, listener);
     injectionBuffer.addMinecartFetchCommand(command);
+    addSuccessListener(command.getName(), false, listener);
   }
 
   public void injectAsImpulse(String command) throws IllegalStateException {
@@ -650,8 +702,8 @@ public class InjectionConnection implements AutoCloseable {
   public void injectAsImpulse(Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     checkOpen();
-    logObserver.addSuccessListener(command.getName(), false, listener);
     injectionBuffer.addImpulseFetchCommand(command);
+    addSuccessListener(command.getName(), false, listener);
   }
 
   public void injectAsRepeat(String command) throws IllegalStateException {
@@ -672,8 +724,8 @@ public class InjectionConnection implements AutoCloseable {
   public void injectAsRepeat(Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     checkOpen();
-    logObserver.addSuccessListener(command.getName(), false, listener);
     injectionBuffer.addRepeatFetchCommand(command);
+    addSuccessListener(command.getName(), true, listener);
   }
 
   @Override

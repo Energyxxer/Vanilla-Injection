@@ -62,7 +62,7 @@ public class MinecraftLogObserver implements AutoCloseable {
 
   private final List<Consumer<? super LogEvent>> logListeners = new CopyOnWriteArrayList<>();
   private final List<Consumer<? super ChatEvent>> chatListeners = new CopyOnWriteArrayList<>();
-  private final Collection<SuccessListenerEntry> successListeners = new ConcurrentLinkedQueue<>();
+  private final Collection<SuccessListener> successListeners = new ConcurrentLinkedQueue<>();
 
   /**
    * Create and {@link #open()} a new {@link MinecraftLogObserver} that observes changes to
@@ -239,12 +239,12 @@ public class MinecraftLogObserver implements AutoCloseable {
   }
 
   private void dispatchSuccessEvent(SuccessEvent event) {
-    for (SuccessListenerEntry entry : successListeners) {
+    for (SuccessListener entry : successListeners) {
       if (event.getInvoker().equals(entry.getInvoker())) {
         if (!entry.isRepeat()) {
           successListeners.remove(entry);
         }
-        entry.getListener().accept(event);
+        entry.getConsumer().accept(event);
       }
     }
   }
@@ -258,7 +258,28 @@ public class MinecraftLogObserver implements AutoCloseable {
    *        notification
    * @param listener
    */
-  public void addSuccessListener(String executor, boolean repeat, Consumer<SuccessEvent> listener) {
-    successListeners.add(new SuccessListenerEntry(executor, repeat, listener));
+  public void addSuccessListener(String executor, Consumer<SuccessEvent> listener) {
+    addSuccessListener(new SuccessListener(executor, false, listener));
+  }
+
+  /**
+   * Add the specified listener to be notified whenever the success of a command that is executed by
+   * {@code executor} is detected in the {@link #logFile}.
+   *
+   * @param listener
+   */
+  public void addSuccessListener(SuccessListener listener) {
+    successListeners.add(listener);
+  }
+
+  /**
+   * Remove the specified success listener. If {@code listener} is registered more than once, all
+   * registrations are cancelled.
+   *
+   * @param listener
+   * @return {@code true} if the specified listener was previously registered
+   */
+  public boolean removeSuccessListener(SuccessListener listener) {
+    return successListeners.removeIf(e -> e == listener);
   }
 }

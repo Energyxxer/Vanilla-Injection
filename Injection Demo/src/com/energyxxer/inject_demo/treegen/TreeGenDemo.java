@@ -41,7 +41,7 @@ public class TreeGenDemo implements SetupListener {
         connection.setImpulseSize(new Vec3I(14, 128, 14));
         connection.setRepeatSize(new Vec3I());
 
-        connection.getLogObserver().addSuccessListener("$genTree", false, l -> {
+        connection.getLogObserver().addSuccessListener("$genTree", l -> {
             //master.injectImpulseCommand("tellraw @a {\"text\":\"Generating a tree...\"}");
             Tree gen = new Tree(connection);
             gen.generate();
