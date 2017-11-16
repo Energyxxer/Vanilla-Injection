@@ -5,6 +5,7 @@ import static com.energyxxer.inject.structure.CommandBlock.Type.IMPULSE;
 import static com.energyxxer.inject.structure.CommandBlock.Type.REPEAT;
 import static com.energyxxer.inject.structure.StructureBlock.Mode.LOAD;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static de.adrodoc55.common.concurrent.Locks.runLocked;
 import static de.adrodoc55.minecraft.coordinate.Axis3.X;
 import static de.adrodoc55.minecraft.coordinate.Direction3.DOWN;
 import static de.adrodoc55.minecraft.coordinate.Vec3I.max;
@@ -25,9 +26,9 @@ import org.apache.logging.log4j.Logger;
 
 import com.energyxxer.inject.structure.Command;
 import com.energyxxer.inject.structure.CommandBlock;
+import com.energyxxer.inject.structure.CommandBlock.Type;
 import com.energyxxer.inject.structure.CommandBlockMinecart;
 import com.energyxxer.inject.structure.StructureBlock;
-import com.energyxxer.inject.structure.CommandBlock.Type;
 import com.energyxxer.log.MinecraftLogObserver;
 import com.google.common.collect.Iterables;
 
@@ -160,46 +161,37 @@ public class InjectionBuffer {
     this.repeatSize = checkNotNull(repeatSize, "repeatSize == null!");
   }
 
-  public void addMinecartCommand(Command command) throws IllegalStateException {
+  public void addMinecartCommand(Command command) {
     minecartCommands.add(command);
   }
 
-  public void addMinecartFetchCommand(Command command) throws IllegalStateException {
-    logAdminCommandsLock.readLock().lock();
-    try {
+  public void addMinecartFetchCommand(Command command) {
+    runLocked(logAdminCommandsLock.readLock(), () -> {
       addMinecartCommand(command);
       logMinecartCommands = true;
-    } finally {
-      logAdminCommandsLock.readLock().unlock();
-    }
+    });
   }
 
-  public void addImpulseCommand(Command command) throws IllegalStateException {
+  public void addImpulseCommand(Command command) {
     impulseCommands.add(command);
   }
 
-  public void addImpulseFetchCommand(Command command) throws IllegalStateException {
-    logAdminCommandsLock.readLock().lock();
-    try {
+  public void addImpulseFetchCommand(Command command) {
+    runLocked(logAdminCommandsLock.readLock(), () -> {
       addImpulseCommand(command);
       logImpulseCommands = true;
-    } finally {
-      logAdminCommandsLock.readLock().unlock();
-    }
+    });
   }
 
-  public void addRepeatCommand(Command command) throws IllegalStateException {
+  public void addRepeatCommand(Command command) {
     repeatCommands.add(command);
   }
 
-  public void addRepeatFetchCommand(Command command) throws IllegalStateException {
-    logAdminCommandsLock.readLock().lock();
-    try {
+  public void addRepeatFetchCommand(Command command) {
+    runLocked(logAdminCommandsLock.readLock(), () -> {
       addRepeatCommand(command);
       logRepeatCommands = true;
-    } finally {
-      logAdminCommandsLock.readLock().unlock();
-    }
+    });
   }
 
   private boolean isEmpty() {

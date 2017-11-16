@@ -118,7 +118,7 @@ public class MinecraftLogObserver implements AutoCloseable {
    * @return whether {@code this} observer is open
    */
   public boolean isOpen() {
-    return executor != null && reader != null && logCheckFuture != null;
+    return reader != null && executor != null && logCheckFuture != null;
   }
 
   public boolean isClosed() {

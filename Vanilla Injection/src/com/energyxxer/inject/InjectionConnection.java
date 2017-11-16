@@ -248,24 +248,20 @@ public class InjectionConnection implements AutoCloseable {
       lockDataFile();
       try {
         logObserver.open();
-        try {
-          int structureId = loadStructureId();
-          this.structureId.set(structureId);
-          logger.info("Using structure '{}'", getStructureName(structureId));
-          Semaphore semaphore = new Semaphore(0);
-          injectCommand(SUCCESSFUL_COMMAND, e -> {
-            confirmStructure(structureId);
-            semaphore.release();
-          });
-          flush();
-          logger.info("Waiting for Minecraft's response");
-          acquire.accept(semaphore);
-          activate();
-        } catch (Throwable t) {
-          logObserver.close();
-          throw t;
-        }
+        int structureId = loadStructureId();
+        this.structureId.set(structureId);
+        logger.info("Using structure '{}'", getStructureName(structureId));
+        Semaphore semaphore = new Semaphore(0);
+        injectCommand(SUCCESSFUL_COMMAND, e -> {
+          confirmStructure(structureId);
+          semaphore.release();
+        });
+        flush();
+        logger.info("Waiting for Minecraft's response");
+        acquire.accept(semaphore);
+        activate();
       } catch (Throwable t) {
+        logObserver.close();
         closeDataFileChannel();
         throw t;
       }
