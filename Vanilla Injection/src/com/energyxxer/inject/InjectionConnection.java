@@ -252,7 +252,7 @@ public class InjectionConnection implements AutoCloseable {
         this.structureId.set(structureId);
         logger.info("Using structure '{}'", getStructureName(structureId));
         Semaphore semaphore = new Semaphore(0);
-        injectCommand(SUCCESSFUL_COMMAND, e -> {
+        injectAsMinecart(SUCCESSFUL_COMMAND, e -> {
           confirmStructure(structureId);
           semaphore.release();
         });
@@ -545,7 +545,7 @@ public class InjectionConnection implements AutoCloseable {
    */
   private void injectTimeoutCheckIfNeccessary(int structureId) {
     if (lastConfirmedStructureId != -1 && structureId % TIME_OUT_CHECK_FREQUENCY == 0) {
-      injectCommand(SUCCESSFUL_COMMAND, e -> {
+      injectAsMinecart(SUCCESSFUL_COMMAND, e -> {
         confirmStructure(structureId);
         if (isPaused() && !isTimedOut()) {
           logger.warn("Connection is no longer timed out");
@@ -610,65 +610,68 @@ public class InjectionConnection implements AutoCloseable {
     injectionBuffer.setRepeatSize(repeatSize);
   }
 
-  public void injectCommand(String command) throws IllegalStateException {
-    injectCommand(new Command(command));
+  public void injectAsMinecart(String command) throws IllegalStateException {
+    injectAsMinecart(new Command(command));
   }
 
-  public void injectCommand(Command command) throws IllegalStateException {
+  public void injectAsMinecart(Command command) throws IllegalStateException {
     checkOpen();
     injectionBuffer.addMinecartCommand(command);
   }
 
-  public void injectCommand(String command, Consumer<SuccessEvent> listener)
+  public void injectAsMinecart(String command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     String name = UUID.randomUUID().toString();
-    injectCommand(new Command(name, command), listener);
+    injectAsMinecart(new Command(name, command), listener);
   }
 
-  public void injectCommand(Command command, Consumer<SuccessEvent> listener)
+  public void injectAsMinecart(Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
+    checkOpen();
     logObserver.addSuccessListener(command.getName(), false, listener);
     injectionBuffer.addMinecartFetchCommand(command);
   }
 
-  public void injectImpulseCommand(String command) throws IllegalStateException {
-    injectImpulseCommand(new Command(command));
+  public void injectAsImpulse(String command) throws IllegalStateException {
+    injectAsImpulse(new Command(command));
   }
 
-  public void injectImpulseCommand(Command command) throws IllegalStateException {
+  public void injectAsImpulse(Command command) throws IllegalStateException {
     checkOpen();
     injectionBuffer.addImpulseCommand(command);
   }
 
-  public void injectImpulseCommand(String command, Consumer<SuccessEvent> listener)
+  public void injectAsImpulse(String command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     String name = UUID.randomUUID().toString();
-    injectImpulseCommand(new Command(name, command), listener);
+    injectAsImpulse(new Command(name, command), listener);
   }
 
-  public void injectImpulseCommand(Command command, Consumer<SuccessEvent> listener)
+  public void injectAsImpulse(Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
+    checkOpen();
     logObserver.addSuccessListener(command.getName(), false, listener);
     injectionBuffer.addImpulseFetchCommand(command);
   }
 
-  public void injectRepeatCommand(String command) throws IllegalStateException {
-    injectRepeatCommand(new Command(command));
+  public void injectAsRepeat(String command) throws IllegalStateException {
+    injectAsRepeat(new Command(command));
   }
 
-  public void injectRepeatCommand(Command command) throws IllegalStateException {
+  public void injectAsRepeat(Command command) throws IllegalStateException {
     checkOpen();
     injectionBuffer.addRepeatCommand(command);
   }
 
-  public void injectRepeatCommand(String command, Consumer<SuccessEvent> listener)
+  public void injectAsRepeat(String command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     String name = UUID.randomUUID().toString();
-    injectRepeatCommand(new Command(name, command), listener);
+    injectAsRepeat(new Command(name, command), listener);
   }
 
-  public void injectRepeatCommand(Command command, Consumer<SuccessEvent> listener)
+  public void injectAsRepeat(Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
+    checkOpen();
     logObserver.addSuccessListener(command.getName(), false, listener);
     injectionBuffer.addRepeatFetchCommand(command);
   }

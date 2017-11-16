@@ -28,8 +28,8 @@ public class WEPlayerInfo {
     }
 
     public void updateEditPos(int index, Vector3D pos, InjectionConnection connection) {
-        connection.injectImpulseCommand("summon shulker " + pos + " {CustomName:\"wePosMarker\",NoGravity:1b,NoAI:1b,Glowing:1b,Invulnerable:1b,Silent:1b,ActiveEffects:[{Id:14b,Duration:1000s,Amplifier:0b,ShowParticles:0b}]}");
-        connection.injectImpulseCommand("tellraw " + username + " [{\"text\":\"[\",\"color\":\"dark_aqua\"},{\"text\":\"WorldEdit\",\"color\":\"aqua\"},\"] Position " + index + " set to (" + pos + ")\"]");
+        connection.injectAsImpulse("summon shulker " + pos + " {CustomName:\"wePosMarker\",NoGravity:1b,NoAI:1b,Glowing:1b,Invulnerable:1b,Silent:1b,ActiveEffects:[{Id:14b,Duration:1000s,Amplifier:0b,ShowParticles:0b}]}");
+        connection.injectAsImpulse("tellraw " + username + " [{\"text\":\"[\",\"color\":\"dark_aqua\"},{\"text\":\"WorldEdit\",\"color\":\"aqua\"},\"] Position " + index + " set to (" + pos + ")\"]");
         if(index == 1) pos1 = pos;
         else if(index == 2) pos2 = pos;
     }
@@ -41,8 +41,8 @@ public class WEPlayerInfo {
             BlockType blockType = reader.getBlockAtPos(pos).type;
             List<BlockType> ignore = Arrays.asList(BlockType.AIR, BlockType.WATER, BlockType.FLOWING_WATER, BlockType.LAVA, BlockType.FLOWING_LAVA);
             if(!ignore.contains(blockType))  {
-                connection.injectImpulseCommand("summon shulker " + pos + " {CustomName:\"wePosMarker\",NoGravity:1b,NoAI:1b,Glowing:1b,Invulnerable:1b,Silent:1b,ActiveEffects:[{Id:14b,Duration:1000s,Amplifier:0b,ShowParticles:0b}]}");
-                connection.injectImpulseCommand("tellraw " + username + " [{\"text\":\"[\",\"color\":\"dark_aqua\"},{\"text\":\"WorldEdit\",\"color\":\"aqua\"},\"] Position " + index + " set to (" + pos + ")\"]");
+                connection.injectAsImpulse("summon shulker " + pos + " {CustomName:\"wePosMarker\",NoGravity:1b,NoAI:1b,Glowing:1b,Invulnerable:1b,Silent:1b,ActiveEffects:[{Id:14b,Duration:1000s,Amplifier:0b,ShowParticles:0b}]}");
+                connection.injectAsImpulse("tellraw " + username + " [{\"text\":\"[\",\"color\":\"dark_aqua\"},{\"text\":\"WorldEdit\",\"color\":\"aqua\"},\"] Position " + index + " set to (" + pos + ")\"]");
                 if(index == 1) pos1 = pos;
                 else if(index == 2) pos2 = pos;
                 return;

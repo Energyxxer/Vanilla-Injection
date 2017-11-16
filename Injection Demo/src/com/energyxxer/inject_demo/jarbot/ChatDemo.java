@@ -46,7 +46,7 @@ public class ChatDemo implements SetupListener {
     }
 
     private static void answer(String message, String username) {
-        connection.injectImpulseCommand("tellraw " + ((username != null) ? username : "@a") + " [{\"text\":\"§8[§bJarbot§8] \"},{\"text\":\"" + message.replace("\\","\\\\").replace("\"","\\\"") + "\",\"color\":\"gray\"}]");
-        connection.injectImpulseCommand("function lab:jarbot_graphics/voice/talk");
+        connection.injectAsImpulse("tellraw " + ((username != null) ? username : "@a") + " [{\"text\":\"§8[§bJarbot§8] \"},{\"text\":\"" + message.replace("\\","\\\\").replace("\"","\\\"") + "\",\"color\":\"gray\"}]");
+        connection.injectAsImpulse("function lab:jarbot_graphics/voice/talk");
     }
 }

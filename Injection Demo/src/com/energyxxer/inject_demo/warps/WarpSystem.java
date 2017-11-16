@@ -65,21 +65,21 @@ public class WarpSystem implements SetupListener {
             if(m.getMessage().split(" ",2)[0].equals(".warp")) {
                 String[] args = m.getMessage().split(" ");
                 if(args.length < 2) {
-                    connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage:\n    warp <warp name>\n    warp set <warp name>\n    warp remove <warp name>\n    warp list\",\"color\":\"red\"}");
+                    connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage:\n    warp <warp name>\n    warp set <warp name>\n    warp remove <warp name>\n    warp list\",\"color\":\"red\"}");
                 } else if(args[1].equals("set")) {
                     if(args.length < 3) {
-                        connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp set <warp name>\",\"color\":\"red\"}");
+                        connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage: warp set <warp name>\",\"color\":\"red\"}");
                     } else {
                         if(reservedKeys.contains(args[2])) {
-                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Name '" + args[2] + "' is a reserved keyword.\",\"color\":\"red\"}");
+                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Name '" + args[2] + "' is a reserved keyword.\",\"color\":\"red\"}");
                         } else if(warps.containsKey(args[2])) {
-                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[2] + "' already exists!\",\"color\":\"red\"}");
+                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[2] + "' already exists!\",\"color\":\"red\"}");
                         } else {
                             int currentCommandID = commandID++;
                             String name = "$warpSet" + currentCommandID;
-                            connection.injectCommand("execute " + m.getSender() + " ~ ~ ~ summon area_effect_cloud ~ ~ ~ {CustomName:\"" + name + "\"}");
-                            connection.injectCommand("tp @e[type=area_effect_cloud,name=" + name + "] " + m.getSender());
-                            connection.injectCommand("entitydata @e[type=area_effect_cloud,name=" + name + "] {fe:tch}", l -> {
+                            connection.injectAsMinecart("execute " + m.getSender() + " ~ ~ ~ summon area_effect_cloud ~ ~ ~ {CustomName:\"" + name + "\"}");
+                            connection.injectAsMinecart("tp @e[type=area_effect_cloud,name=" + name + "] " + m.getSender());
+                            connection.injectAsMinecart("entitydata @e[type=area_effect_cloud,name=" + name + "] {fe:tch}", l -> {
                                 Transform warpTransform = new Transform();
 
                                 //Pos
@@ -102,25 +102,25 @@ public class WarpSystem implements SetupListener {
                                 warpTransform.pitch = Float.parseFloat(rot[1]);
 
                                 warps.put(args[2], warpTransform);
-                                connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warp '" + args[2] + "' has been set.\",\"color\":\"green\"}");
+                                connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Warp '" + args[2] + "' has been set.\",\"color\":\"green\"}");
                                 save();
                             });
                         }
                     }
                 } else if(args[1].equals("remove")) {
                     if(args.length < 3) {
-                        connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp remove <warp name>\",\"color\":\"red\"}");
+                        connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage: warp remove <warp name>\",\"color\":\"red\"}");
                     } else {
                         if(warps.containsKey(args[2])) {
                             warps.remove(args[2]);
-                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warp '" + args[2] + "' has been removed.\",\"color\":\"green\"}");
+                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Warp '" + args[2] + "' has been removed.\",\"color\":\"green\"}");
                             save();
                         } else {
-                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[2] + "' doesn't exist!\",\"color\":\"red\"}");
+                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[2] + "' doesn't exist!\",\"color\":\"red\"}");
                         }
                     }
                 } else if(args[1].equals("list")) {
-                    if(warps.isEmpty()) connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"There are no warps.\",\"color\":\"yellow\"}");
+                    if(warps.isEmpty()) connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"There are no warps.\",\"color\":\"yellow\"}");
                     else {
                         StringBuilder list = new StringBuilder();
                         for(String key : warps.keySet()) {
@@ -138,24 +138,24 @@ public class WarpSystem implements SetupListener {
                             list.append("'\"},");
                             list.append("\"color\":\"dark_aqua\"}");
                         }
-                        connection.injectImpulseCommand("tellraw " + m.getSender() + " [{\"text\":\"List of warps (" + warps.size() + "):\",\"color\":\"aqua\"}" + list + "]");
+                        connection.injectAsImpulse("tellraw " + m.getSender() + " [{\"text\":\"List of warps (" + warps.size() + "):\",\"color\":\"aqua\"}" + list + "]");
                     }
                 } else {
                     if(args.length < 2) {
-                        connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Usage: warp <warp name>\",\"color\":\"red\"}");
+                        connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage: warp <warp name>\",\"color\":\"red\"}");
                     } else {
                         if(warps.containsKey(args[1])) {
-                            connection.injectImpulseCommand("tp " + m.getSender() + " " + warps.get(args[1]));
-                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"Warping to '" + args[1] + "'\",\"color\":\"yellow\"}");
+                            connection.injectAsImpulse("tp " + m.getSender() + " " + warps.get(args[1]));
+                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Warping to '" + args[1] + "'\",\"color\":\"yellow\"}");
                         } else {
-                            connection.injectImpulseCommand("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[1] + "' doesn't exist!\",\"color\":\"red\"}");
+                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[1] + "' doesn't exist!\",\"color\":\"red\"}");
                         }
                     }
                 }
             }
         });
 
-        connection.injectImpulseCommand("tellraw @a {\"text\":\"§3[§bWarps§3] §3Warp systems online.\"}");
+        connection.injectAsImpulse("tellraw @a {\"text\":\"§3[§bWarps§3] §3Warp systems online.\"}");
     }
 
     private void load() {

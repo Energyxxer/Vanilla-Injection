@@ -91,11 +91,11 @@ public class Tree {
         for(int y = 0; y < treeHeight; y++) {
             double heightFactor = (double) y / treeHeight;
 
-            connection.injectImpulseCommand(execute + "setblock ~" + (int) pos.x + " ~" + pos.y + " ~" + (int) pos.z + " minecraft:log2 variant=dark_oak,axis=none");
+            connection.injectAsImpulse(execute + "setblock ~" + (int) pos.x + " ~" + pos.y + " ~" + (int) pos.z + " minecraft:log2 variant=dark_oak,axis=none");
             for(int d = 0; d < 8; d++) {
                 if(y <= rootHeights[d]) {
                     Vector3D offset = rootOffsets[d];
-                    connection.injectImpulseCommand(execute + "setblock ~" + ((int) pos.x + offset.x) + " ~" + pos.y + " ~" + ((int) pos.z + offset.z) + " minecraft:log2 variant=dark_oak,axis=none");
+                    connection.injectAsImpulse(execute + "setblock ~" + ((int) pos.x + offset.x) + " ~" + pos.y + " ~" + ((int) pos.z + offset.z) + " minecraft:log2 variant=dark_oak,axis=none");
                 }
             }
 
@@ -109,9 +109,9 @@ public class Tree {
             }
 
             if(y > 6) {
-                connection.injectImpulseCommand(execute + "fill ~" + ((int) pos.x-1) + " ~" + (pos.y) + " ~" + ((int) pos.z) + " ~" + ((int) pos.x+1) + " ~" + (pos.y) + " ~" + ((int) pos.z) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
-                connection.injectImpulseCommand(execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y-1) + " ~" + ((int) pos.z) + " ~" + ((int) pos.x) + " ~" + (pos.y+1) + " ~" + ((int) pos.z) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
-                connection.injectImpulseCommand(execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z-1) + " ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z+1) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                connection.injectAsImpulse(execute + "fill ~" + ((int) pos.x-1) + " ~" + (pos.y) + " ~" + ((int) pos.z) + " ~" + ((int) pos.x+1) + " ~" + (pos.y) + " ~" + ((int) pos.z) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                connection.injectAsImpulse(execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y-1) + " ~" + ((int) pos.z) + " ~" + ((int) pos.x) + " ~" + (pos.y+1) + " ~" + ((int) pos.z) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
+                connection.injectAsImpulse(execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z-1) + " ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z+1) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
             }
 
             pos.y++;
