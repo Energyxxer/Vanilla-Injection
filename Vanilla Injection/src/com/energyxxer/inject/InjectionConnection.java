@@ -38,6 +38,7 @@ import com.energyxxer.log.SuccessEvent;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Ints;
 
+import de.adrodoc55.common.util.CheckedConsumer;
 import de.adrodoc55.minecraft.coordinate.Vec3I;
 import de.adrodoc55.minecraft.structure.Structure;
 
@@ -144,6 +145,31 @@ public class InjectionConnection implements AutoCloseable {
    */
   public InjectionConnection(Path logFile, Path worldDir, String identifier)
       throws IOException, InterruptedException {
+    this(logFile, worldDir, identifier, Semaphore::acquire);
+  }
+
+  /**
+   * Create and {@link #open(long, TimeUnit)} a new {@link InjectionConnection} with the specified
+   * parameters.
+   *
+   * @param logFile the {@link MinecraftLogObserver#logFile log file} of the Minecraft installation
+   * @param worldDir the {@link #worldDir} of the Minecraft world
+   * @param identifier the unique {@link #identifier} for {@code this} connection in the Minecraft
+   *        world
+   * @param timeout the maximum time to wait for Minecraft
+   * @param unit the time unit of the {@code timeout} argument
+   * @throws IOException if an I/O error occurs while {@link #open() opening} the connection
+   * @throws InterruptedException if the current thread is interrupted while waiting for Minecraft's
+   *         response
+   */
+  public InjectionConnection(Path logFile, Path worldDir, String identifier, long timeout,
+      TimeUnit unit) throws IOException, InterruptedException {
+    this(logFile, worldDir, identifier, acquire(timeout, unit));
+  }
+
+  private InjectionConnection(Path logFile, Path worldDir, String identifier,
+      CheckedConsumer<Semaphore, InterruptedException> acquire)
+      throws IOException, InterruptedException {
     this.worldDir = checkNotNull(worldDir, "worldDir == null!");
     checkArgument(isDirectory(worldDir), "%s is not a directory!", worldDir);
     this.identifier = checkNotNull(identifier, "identifier == null!");
@@ -152,7 +178,7 @@ public class InjectionConnection implements AutoCloseable {
     injectionBuffer = new InjectionBuffer(this::getStructureName);
     structureDir = worldDir.resolve("structures");
     dataFile = structureDir.resolve(getStructureNamePrefix() + "data.txt");
-    open();
+    open(acquire);
   }
 
   private String getStructureNamePrefix() {
@@ -176,7 +202,9 @@ public class InjectionConnection implements AutoCloseable {
 
   /**
    * {@link #isOpen() Open} {@code this} connection and wait for a response from Minecraft. Once the
-   * response is received, {@link #isActive() activate} {@code this} connection.
+   * response is received, {@link #isActive() activate} {@code this} connection.<br>
+   * If Minecraft never responds then a call to this method blocks indefinately, if this is not
+   * desired use {@link #open(long, TimeUnit)}.
    *
    * @throws IOException if an I/O error occurs while opening the
    *         {@link MinecraftLogObserver#logFile log file}, locking the {@link #counterFile} or
@@ -184,7 +212,37 @@ public class InjectionConnection implements AutoCloseable {
    * @throws InterruptedException if the current thread is interrupted while waiting for Minecraft's
    *         response
    */
-  public synchronized void open() throws IOException, InterruptedException {
+  public void open() throws IOException, InterruptedException {
+    open(Semaphore::acquire);
+  }
+
+  /**
+   * {@link #isOpen() Open} {@code this} connection and wait for a response from Minecraft. Once the
+   * response is received, {@link #isActive() activate} {@code this} connection.
+   *
+   * @param timeout the maximum time to wait for Minecraft
+   * @param unit the time unit of the {@code timeout} argument
+   * @throws IOException if an I/O error occurs while opening the
+   *         {@link MinecraftLogObserver#logFile log file}, locking the {@link #counterFile} or
+   *         {@link #flush() flushing}
+   * @throws InterruptedException if the current thread is interrupted while waiting for Minecraft's
+   *         response
+   */
+  public void open(long timeout, TimeUnit unit) throws IOException, InterruptedException {
+    open(acquire(timeout, unit));
+  }
+
+  private static CheckedConsumer<Semaphore, InterruptedException> acquire(long timeout,
+      TimeUnit unit) {
+    return semaphore -> {
+      if (!semaphore.tryAcquire(timeout, unit)) {
+        throw new InterruptedException("Timeout after " + timeout + " " + unit);
+      }
+    };
+  }
+
+  private synchronized void open(CheckedConsumer<Semaphore, InterruptedException> acquire)
+      throws IOException, InterruptedException {
     if (isClosed()) {
       logger.info("Establishing connection");
       lockDataFile();
@@ -201,7 +259,7 @@ public class InjectionConnection implements AutoCloseable {
           });
           flush();
           logger.info("Waiting for Minecraft's response");
-          semaphore.acquire();
+          acquire.accept(semaphore);
           activate();
         } catch (Throwable t) {
           logObserver.close();
