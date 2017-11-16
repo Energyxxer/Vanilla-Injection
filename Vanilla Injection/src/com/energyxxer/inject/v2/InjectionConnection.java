@@ -268,6 +268,9 @@ public class InjectionConnection implements AutoCloseable {
   public synchronized void close() throws IOException {
     if (isOpen()) {
       logger.info("Closing connection");
+      if (isActive()) {
+        deactivate();
+      }
       lastConfirmedStructureId = -1;
       logObserver.close();
       flush();
@@ -316,9 +319,7 @@ public class InjectionConnection implements AutoCloseable {
     checkOpen();
     if (isActive()) {
       logger.info("Pausing connection");
-      cancelPeriodicFlush();
-      executor.shutdown();
-      executor = null;
+      deactivate();
     }
   }
 
@@ -339,6 +340,12 @@ public class InjectionConnection implements AutoCloseable {
   private void activate() {
     executor = Executors.newSingleThreadScheduledExecutor();
     schedulePeriodicFlush();
+  }
+
+  private void deactivate() {
+    cancelPeriodicFlush();
+    executor.shutdown();
+    executor = null;
   }
 
   /**
