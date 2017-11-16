@@ -31,11 +31,11 @@ public class Command implements de.adrodoc55.minecraft.placement.Command {
     this(null, command);
   }
 
-  public Command(String name, @Nullable String command) {
+  public Command(@Nullable String name, String command) {
     this(name, command, false);
   }
 
-  public Command(String name, @Nullable String command, boolean trackOutput) {
+  public Command(@Nullable String name, String command, boolean trackOutput) {
     this.name = name;
     this.command = checkNotNull(command, "command == null!");
     this.trackOutput = trackOutput;
