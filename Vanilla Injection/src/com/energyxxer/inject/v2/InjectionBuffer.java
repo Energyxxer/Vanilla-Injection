@@ -65,14 +65,37 @@ public class InjectionBuffer {
 
   /**
    * This flag indicates whether or not the next call to {@link #createStructure(int)} should
-   * generate commands that if successful are written to the {@link MinecraftLogObserver#logFile log
-   * file}. This is usually set to {@code true} when listening for the output of some commands.
+   * generate {@link #minecartCommands} that if successful are written to the
+   * {@link MinecraftLogObserver#logFile log file}. This is usually set to {@code true} when
+   * listening for the output of some commands.
    * <p>
    * <b>Implementation Notes</b><br>
    * This field is not {@code volatile} because it is only read while holding the exclusive write
    * lock and only written when holding the read lock of {@link #logAdminCommandsLock}.
    */
-  private boolean logAdminCommands;
+  private boolean logMinecartCommands;
+  /**
+   * This flag indicates whether or not the next call to {@link #createStructure(int)} should
+   * generate {@link #impulseCommands} that if successful are written to the
+   * {@link MinecraftLogObserver#logFile log file}. This is usually set to {@code true} when
+   * listening for the output of some commands.
+   * <p>
+   * <b>Implementation Notes</b><br>
+   * This field is not {@code volatile} because it is only read while holding the exclusive write
+   * lock and only written when holding the read lock of {@link #logAdminCommandsLock}.
+   */
+  private boolean logImpulseCommands;
+  /**
+   * This flag indicates whether or not the next call to {@link #createStructure(int)} should
+   * generate {@link #repeatCommands} that if successful are written to the
+   * {@link MinecraftLogObserver#logFile log file}. This is usually set to {@code true} when
+   * listening for the output of some commands.
+   * <p>
+   * <b>Implementation Notes</b><br>
+   * This field is not {@code volatile} because it is only read while holding the exclusive write
+   * lock and only written when holding the read lock of {@link #logAdminCommandsLock}.
+   */
+  private boolean logRepeatCommands;
   /**
    * This {@link ReadWriteLock} is used to prevent concurrent adding of commands that require admin
    * command logging while {@link #createStructure(int) creating a structure}.<br>
@@ -84,9 +107,10 @@ public class InjectionBuffer {
    * <li>If such a command is first added during {@link #createStructure(int)} then it might be
    * added to the {@link Structure} even though the preparation to enable logging was not
    * added.</li>
-   * <li>If such a command is added during {@link #createStructure(int)} then the flag
-   * {@link #logAdminCommands} might be set to {@code false} by {@link #createStructure(int)} even
-   * though the command might not have been added to a {@link Structure} yet.</li>
+   * <li>If such a command is added during {@link #createStructure(int)} then the flags
+   * {@link #logMinecartCommands}, {@link #logImpulseCommands} or {@link #logRepeatCommands} might
+   * be set to {@code false} by {@link #createStructure(int)} even though the command might not have
+   * been added to a {@link Structure} yet.</li>
    * </ul>
    */
   private final ReadWriteLock logAdminCommandsLock = new ReentrantReadWriteLock();
@@ -140,7 +164,7 @@ public class InjectionBuffer {
     logAdminCommandsLock.readLock().lock();
     try {
       addMinecartCommand(command);
-      logAdminCommands = true;
+      logMinecartCommands = true;
     } finally {
       logAdminCommandsLock.readLock().unlock();
     }
@@ -154,7 +178,7 @@ public class InjectionBuffer {
     logAdminCommandsLock.readLock().lock();
     try {
       addImpulseCommand(command);
-      logAdminCommands = true;
+      logImpulseCommands = true;
     } finally {
       logAdminCommandsLock.readLock().unlock();
     }
@@ -168,14 +192,14 @@ public class InjectionBuffer {
     logAdminCommandsLock.readLock().lock();
     try {
       addRepeatCommand(command);
-      logAdminCommands = true;
+      logRepeatCommands = true;
     } finally {
       logAdminCommandsLock.readLock().unlock();
     }
   }
 
   private boolean isEmpty() {
-    return minecartCommands.isEmpty() && impulseCommands.isEmpty();
+    return minecartCommands.isEmpty() && impulseCommands.isEmpty() && repeatCommands.isEmpty();
   }
 
   /**
@@ -193,8 +217,6 @@ public class InjectionBuffer {
     }
     // WriteLock to prevent concurrent adding of commands that require admin command logging
     logAdminCommandsLock.writeLock().lock();
-    boolean logAdminCommands = this.logAdminCommands; // This copy is used after releasing the lock
-    this.logAdminCommands = false;
     List<Command> minecartCommands;
     List<Command> impulseCommands;
     List<Command> repeatCommands;
@@ -203,25 +225,32 @@ public class InjectionBuffer {
       for (Command command : Iterables.consumingIterable(this.minecartCommands)) {
         minecartCommands.add(command);
       }
+      if (logMinecartCommands) {
+        minecartCommands.add(0, new Command("gamerule logAdminCommands true"));
+        minecartCommands.add(new Command("gamerule logAdminCommands false"));
+        this.logMinecartCommands = false;
+      }
       impulseCommands = new ArrayList<>(this.impulseCommands.size());
       for (Command command : Iterables.consumingIterable(this.impulseCommands)) {
         impulseCommands.add(command);
+      }
+      if (logImpulseCommands) {
+        impulseCommands.add(0, new Command("gamerule logAdminCommands true"));
+        impulseCommands.add(new Command("gamerule logAdminCommands false"));
+        this.logImpulseCommands = false;
       }
       repeatCommands = new ArrayList<>(this.repeatCommands.size());
       for (Command command : Iterables.consumingIterable(this.repeatCommands)) {
         repeatCommands.add(command);
       }
+      if (logRepeatCommands) {
+        repeatCommands.add(0, new Command("gamerule logAdminCommands true"));
+        repeatCommands.add(new Command("gamerule logAdminCommands false"));
+        this.logRepeatCommands = false;
+      }
     } finally {
       // this buffer no longer contains fetch commands, releasing lock
       logAdminCommandsLock.writeLock().unlock();
-    }
-    if (logAdminCommands) {
-      minecartCommands.add(0, new Command("gamerule logAdminCommands true"));
-      minecartCommands.add(new Command("gamerule logAdminCommands false"));
-      impulseCommands.add(0, new Command("gamerule logAdminCommands true"));
-      impulseCommands.add(new Command("gamerule logAdminCommands false"));
-      repeatCommands.add(0, new Command("gamerule logAdminCommands true"));
-      repeatCommands.add(new Command("gamerule logAdminCommands false"));
     }
 
     LOGGER.debug("Creating structure");
