@@ -252,7 +252,7 @@ public class InjectionConnection implements AutoCloseable {
         this.structureId.set(structureId);
         logger.info("Using structure '{}'", getStructureName(structureId));
         Semaphore semaphore = new Semaphore(0);
-        injectAsMinecart(SUCCESSFUL_COMMAND, e -> {
+        injectAsImpulse(SUCCESSFUL_COMMAND, e -> {
           confirmStructure(structureId);
           semaphore.release();
         });
@@ -545,7 +545,7 @@ public class InjectionConnection implements AutoCloseable {
    */
   private void injectTimeoutCheckIfNeccessary(int structureId) {
     if (lastConfirmedStructureId != -1 && structureId % TIME_OUT_CHECK_FREQUENCY == 0) {
-      injectAsMinecart(SUCCESSFUL_COMMAND, e -> {
+      injectAsImpulse(SUCCESSFUL_COMMAND, e -> {
         confirmStructure(structureId);
         if (isPaused() && !isTimedOut()) {
           logger.warn("Connection is no longer timed out");
