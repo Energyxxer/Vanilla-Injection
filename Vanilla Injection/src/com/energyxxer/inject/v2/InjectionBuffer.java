@@ -266,8 +266,7 @@ class InjectionBuffer {
     try {
       return CommandBlockPlacer.place(commands, start, max, factory);
     } catch (NotEnoughSpaceException ex) {
-      // TODO: custom BufferOverflowException
-      throw new RuntimeException(ex);
+      throw new BufferOverflowException(ex);
     }
   }
 
