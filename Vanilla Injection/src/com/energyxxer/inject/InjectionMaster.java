@@ -78,10 +78,6 @@ public class InjectionMaster {
      * How often the processing tick listeners should run (in milliseconds).
      * */
     private long processingFrequency = 1000;
-    /**
-     * How long to keep read chunks in memory for (in milliseconds).
-     * */
-    private long chunkRefreshFrequency = 1000;
 
     /**
      * This master's structure injector.
@@ -115,7 +111,7 @@ public class InjectionMaster {
         this.prefix = prefix;
 
         this.injector = new Injector(this);
-        this.reader = new LevelReader(this);
+        this.reader = new LevelReader(worldDirectory.toPath());
     }
 
     /**
@@ -228,20 +224,6 @@ public class InjectionMaster {
 
         if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Setting processing frequency to " + processingFrequency + ".");
         this.processingFrequency = processingFrequency;
-    }
-
-    /**
-     * Sets how long often chunks should be cleared from memory to allow new data to be read.
-     *
-     * @param chunkRefreshFrequency The time (in milliseconds) between chunk refreshes.
-     * */
-    public void setChunkRefreshFrequency(long chunkRefreshFrequency) {
-        if(running) throw new IllegalStateException("Cannot set chunk refreshing frequency while injection is running.");
-
-        if(chunkRefreshFrequency <= 0) throw new IllegalArgumentException("Non-positive chunk refreshing frequency.");
-
-        if(verbose) System.out.println(TIME_FORMAT.format(new Date()) + " [InjectionMaster] Setting chunk refresh frequency to " + chunkRefreshFrequency + ".");
-        this.chunkRefreshFrequency = chunkRefreshFrequency;
     }
 
     /**
@@ -375,26 +357,5 @@ public class InjectionMaster {
      * */
     public void setVerbose(boolean verbose) {
         this.verbose = verbose;
-    }
-
-    /**
-     * Whether this master's level reader has been scheduled to clear its chunks but hasn't been cleared.
-     * */
-    private boolean chunkRefreshScheduled = false;
-
-    /**
-     * Schedules a chunk clear, if possible.
-     * */
-    public void scheduleChunkRefresh() {
-        if(!chunkRefreshScheduled) {
-            chunkRefreshScheduled = true;
-            this.timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    reader.clearChunkMemory();
-                    chunkRefreshScheduled = false;
-                }
-            },this.chunkRefreshFrequency);
-        }
     }
 }

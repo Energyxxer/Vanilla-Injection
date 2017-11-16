@@ -1,9 +1,9 @@
 package com.energyxxer.inject.level_utils;
 
-import com.energyxxer.inject.InjectionMaster;
-import com.energyxxer.inject.level_utils.block.Block;
-import com.energyxxer.inject.nbt.Tag;
-import com.energyxxer.inject.utils.Vector3D;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.nio.file.Files.isDirectory;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -11,33 +11,61 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.InflaterInputStream;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.energyxxer.inject.level_utils.block.Block;
+import com.energyxxer.inject.nbt.Tag;
+import com.energyxxer.inject.utils.Vector3D;
 
 /**
  * Class for reading a level's chunks.
  */
 public class LevelReader {
-    /**
-     * The <code>InjectionMaster</code> associated with this level reader.
-     * */
-    private final InjectionMaster master;
+    private static final Logger LOGGER = LogManager.getLogger();
+    private static final ScheduledExecutorService commonExecutor =
+        Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+          @Override
+          public Thread newThread(Runnable r) {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+          }
+        });
 
     /**
-     * Creates a <code>LevelReader</code> associated to the given master.
-     *
-     * @param master The master to attach this <code>LevelReader</code> to.
-     * */
-    public LevelReader(InjectionMaster master) {
-        this.master = master;
-    }
+     * The directory of the Minecraft world.
+     */
+    private final Path worldDir;
 
     /**
      * Map containing all the chunks previously read, per dimension.
-     * */
-    private HashMap<Integer, ArrayList<Chunk>> chunkMemory = new HashMap<>();
+     */
+    private final Map<Integer, ArrayList<Chunk>> chunkMemory = new ConcurrentHashMap<>();
+
+    /**
+     * How long to keep read chunks in memory for (in {@link #chunkRefreshTimeUnit}).
+     */
+    private long chunkRefreshDelay = 1;
+    private TimeUnit chunkRefreshTimeUnit = SECONDS;
+
+    /**
+     * @param worldDir the {@link #worldDir}
+     */
+    public LevelReader(Path worldDir) {
+      this.worldDir = checkNotNull(worldDir, "worldDir == null!");
+      checkArgument(isDirectory(worldDir), "%s is not a directory!", worldDir);
+    }
 
     /**
      * Reads a chunk at the position specified in the overworld.
@@ -95,7 +123,7 @@ public class LevelReader {
 
         File rf = new File(this.getPathForDimension(dim)+File.separator+"r."+regionX+'.'+regionZ+".mca");
 
-        master.scheduleChunkRefresh();
+        scheduleChunkRefresh();
 
         try(RandomAccessFile region = new RandomAccessFile(rf,"r")) {
             long seek = ((inRegionX%32) + (inRegionZ%32)*32);
@@ -314,7 +342,7 @@ public class LevelReader {
         int chunkX = (int) Math.floor(x / 16f);
         int chunkZ = (int) Math.floor(z / 16f);
 
-        return master.reader.readChunk(chunkX, chunkZ, dim);
+        return readChunk(chunkX, chunkZ, dim);
     }
 
     /**
@@ -324,7 +352,7 @@ public class LevelReader {
      *
      * @return The name of the folder containing region information about the given dimension.
      * */
-    private String getPathForDimension(int dim) {
+    private Path getPathForDimension(int dim) {
         String folder;
         switch(dim) {
             case -1: folder = "DIM-1"; break;
@@ -332,7 +360,7 @@ public class LevelReader {
             case 1: folder = "DIM1"; break;
             default: throw new IllegalArgumentException("Invalid dimension index " + dim);
         }
-        return master.getWorldDirectory().getAbsolutePath() + File.separator + folder;
+        return worldDir.resolve(folder);
     }
 
     /**
@@ -366,10 +394,54 @@ public class LevelReader {
     }
 
     /**
+     * @return the value of {@link #chunkRefreshDelay}
+     */
+    public long getChunkRefreshDelay() {
+      return chunkRefreshDelay;
+    }
+
+    /**
+     * @param chunkRefreshDelay the new value of {@link #chunkRefreshDelay}
+     */
+    public void setChunkRefreshDelay(long chunkRefreshDelay) {
+      this.chunkRefreshDelay = chunkRefreshDelay;
+    }
+
+    /**
+     * @return the value of {@link #chunkRefreshTimeUnit}
+     */
+    public TimeUnit getChunkRefreshTimeUnit() {
+      return chunkRefreshTimeUnit;
+    }
+
+    /**
+     * @param chunkRefreshTimeUnit the new value of {@link #chunkRefreshTimeUnit}
+     */
+    public void setChunkRefreshTimeUnit(TimeUnit chunkRefreshTimeUnit) {
+      this.chunkRefreshTimeUnit = chunkRefreshTimeUnit;
+    }
+
+    /**
+     * Whether {@code this} level reader has been scheduled to clear its chunks but hasn't been
+     * cleared yet.
+     */
+    private boolean chunkRefreshScheduled = false;
+
+    private void scheduleChunkRefresh() {
+      if (!chunkRefreshScheduled) {
+        chunkRefreshScheduled = true;
+        commonExecutor.schedule(() -> {
+          clearChunkMemory();
+          chunkRefreshScheduled = false;
+        }, chunkRefreshDelay, chunkRefreshTimeUnit);
+      }
+    }
+
+    /**
      * Clears this level reader's chunk memory for chunks to be read from file again.
-     * */
+     */
     public void clearChunkMemory() {
-        if(master.isVerbose()) System.out.println(InjectionMaster.TIME_FORMAT.format(new Date()) + " [LevelReader] Clearing " + chunkMemory.size() + " chunk(s) from memory.");
-        chunkMemory.clear();
+      LOGGER.debug("Clearing " + chunkMemory.size() + " chunk(s) from memory");
+      chunkMemory.clear();
     }
 }
