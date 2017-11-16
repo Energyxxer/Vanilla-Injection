@@ -169,7 +169,7 @@ class ChainPlacer<C extends Command> {
     } else if (previousDirection != null) {
       currentDirection = previousDirection;
     } else {
-      previousDirection = DEFAULT_DIRECTION;
+      currentDirection = DEFAULT_DIRECTION;
     }
   }
 }
