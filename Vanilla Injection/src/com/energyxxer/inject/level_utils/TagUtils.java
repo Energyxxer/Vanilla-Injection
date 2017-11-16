@@ -1,6 +1,6 @@
 package com.energyxxer.inject.level_utils;
 
-import com.energyxxer.inject.nbt.Tag;
+import com.energyxxer.inject.level_utils.nbt.Tag;
 
 /**
  * Didn't know where to put this one method so I made a whole class for it.

@@ -1,9 +1,9 @@
-package com.energyxxer.inject.v2;
+package com.energyxxer.inject;
 
-import static com.energyxxer.inject.structures.StructureBlock.Mode.LOAD;
-import static com.energyxxer.inject.v2.CommandBlock.Type.CHAIN;
-import static com.energyxxer.inject.v2.CommandBlock.Type.IMPULSE;
-import static com.energyxxer.inject.v2.CommandBlock.Type.REPEAT;
+import static com.energyxxer.inject.structure.CommandBlock.Type.CHAIN;
+import static com.energyxxer.inject.structure.CommandBlock.Type.IMPULSE;
+import static com.energyxxer.inject.structure.CommandBlock.Type.REPEAT;
+import static com.energyxxer.inject.structure.StructureBlock.Mode.LOAD;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static de.adrodoc55.minecraft.coordinate.Axis3.X;
 import static de.adrodoc55.minecraft.coordinate.Direction3.DOWN;
@@ -23,8 +23,12 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.energyxxer.inject.structures.StructureBlock;
-import com.energyxxer.inject.v2.CommandBlock.Type;
+import com.energyxxer.inject.structure.Command;
+import com.energyxxer.inject.structure.CommandBlock;
+import com.energyxxer.inject.structure.CommandBlockMinecart;
+import com.energyxxer.inject.structure.StructureBlock;
+import com.energyxxer.inject.structure.CommandBlock.Type;
+import com.energyxxer.log.MinecraftLogObserver;
 import com.google.common.collect.Iterables;
 
 import de.adrodoc55.minecraft.coordinate.Vec3D;

@@ -2,8 +2,8 @@ package com.energyxxer.inject_demo.treegen;
 
 import java.util.Random;
 
+import com.energyxxer.inject.InjectionConnection;
 import com.energyxxer.inject.utils.Vector3D;
-import com.energyxxer.inject.v2.InjectionConnection;
 
 /**
  * Created by User on 4/12/2017.

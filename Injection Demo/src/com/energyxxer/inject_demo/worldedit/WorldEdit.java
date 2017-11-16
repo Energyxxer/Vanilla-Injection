@@ -7,14 +7,14 @@ import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
 
+import com.energyxxer.inject.InjectionConnection;
 import com.energyxxer.inject.level_utils.LevelReader;
 import com.energyxxer.inject.level_utils.block.BlockType;
-import com.energyxxer.inject.listeners.ChatEvent;
 import com.energyxxer.inject.utils.Vector3D;
-import com.energyxxer.inject.v2.InjectionConnection;
 import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;
+import com.energyxxer.log.ChatEvent;
 
 /**
  * Created by User on 4/13/2017.

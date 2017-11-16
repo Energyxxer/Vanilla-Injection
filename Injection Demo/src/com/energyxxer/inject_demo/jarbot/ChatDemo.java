@@ -6,7 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 
-import com.energyxxer.inject.v2.InjectionConnection;
+import com.energyxxer.inject.InjectionConnection;
 import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;

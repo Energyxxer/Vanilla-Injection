@@ -1,4 +1,4 @@
-package com.energyxxer.inject.v2;
+package com.energyxxer.inject;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -32,7 +32,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.Integers;
 
-import com.energyxxer.inject.listeners.SuccessEvent;
+import com.energyxxer.inject.structure.Command;
+import com.energyxxer.log.MinecraftLogObserver;
+import com.energyxxer.log.SuccessEvent;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Ints;
 

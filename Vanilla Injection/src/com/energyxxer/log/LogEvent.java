@@ -1,4 +1,4 @@
-package com.energyxxer.inject.listeners;
+package com.energyxxer.log;
 
 /**
  * An event which indicates that a new line has been printed into the log.

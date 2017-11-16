@@ -1,4 +1,4 @@
-package com.energyxxer.inject.v2;
+package com.energyxxer.inject;
 
 /**
  * @author Adrodoc55

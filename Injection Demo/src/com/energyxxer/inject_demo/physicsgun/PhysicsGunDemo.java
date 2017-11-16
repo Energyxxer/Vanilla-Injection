@@ -9,9 +9,9 @@ import java.util.HashMap;
 
 import javax.swing.Timer;
 
+import com.energyxxer.inject.InjectionConnection;
+import com.energyxxer.inject.structure.Command;
 import com.energyxxer.inject.utils.Vector3D;
-import com.energyxxer.inject.v2.Command;
-import com.energyxxer.inject.v2.InjectionConnection;
 import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;

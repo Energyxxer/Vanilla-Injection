@@ -1,4 +1,4 @@
-package com.energyxxer.inject.v2;
+package com.energyxxer.log;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -24,9 +24,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.energyxxer.inject.listeners.ChatEvent;
-import com.energyxxer.inject.listeners.LogEvent;
-import com.energyxxer.inject.listeners.SuccessEvent;
 import com.energyxxer.inject.utils.LogFileReader;
 
 /**

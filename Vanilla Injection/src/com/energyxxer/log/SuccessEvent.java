@@ -1,4 +1,4 @@
-package com.energyxxer.inject.listeners;
+package com.energyxxer.log;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

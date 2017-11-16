@@ -1,4 +1,4 @@
-package com.energyxxer.inject.listeners;
+package com.energyxxer.log;
 
 /**
  * An event class that indicates that a chat message has been sent.

@@ -25,7 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.energyxxer.inject.level_utils.block.Block;
-import com.energyxxer.inject.nbt.Tag;
+import com.energyxxer.inject.level_utils.nbt.Tag;
 import com.energyxxer.inject.utils.Vector3D;
 
 /**

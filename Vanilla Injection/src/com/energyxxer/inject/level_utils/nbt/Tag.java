@@ -1,4 +1,4 @@
-package com.energyxxer.inject.nbt;
+package com.energyxxer.inject.level_utils.nbt;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

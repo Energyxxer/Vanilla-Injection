@@ -1,10 +1,8 @@
-package com.energyxxer.inject.v2;
+package com.energyxxer.log;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.function.Consumer;
-
-import com.energyxxer.inject.listeners.SuccessEvent;
 
 /**
  * @author Adrodoc55

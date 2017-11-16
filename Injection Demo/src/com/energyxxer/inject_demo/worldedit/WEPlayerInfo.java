@@ -3,10 +3,10 @@ package com.energyxxer.inject_demo.worldedit;
 import java.util.Arrays;
 import java.util.List;
 
+import com.energyxxer.inject.InjectionConnection;
 import com.energyxxer.inject.level_utils.LevelReader;
 import com.energyxxer.inject.level_utils.block.BlockType;
 import com.energyxxer.inject.utils.Vector3D;
-import com.energyxxer.inject.v2.InjectionConnection;
 import com.energyxxer.inject_demo.util.Transform;
 
 /**

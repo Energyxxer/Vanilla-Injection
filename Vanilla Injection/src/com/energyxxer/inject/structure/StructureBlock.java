@@ -1,4 +1,4 @@
-package com.energyxxer.inject.structures;
+package com.energyxxer.inject.structure;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

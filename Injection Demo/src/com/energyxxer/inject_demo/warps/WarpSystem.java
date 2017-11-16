@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
-import com.energyxxer.inject.v2.InjectionConnection;
+import com.energyxxer.inject.InjectionConnection;
 import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;
