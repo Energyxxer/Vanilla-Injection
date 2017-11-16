@@ -266,8 +266,10 @@ public class InjectionBuffer {
     structure.addBlock(new CommandBlock("setblock ~ ~-2 ~ redstone_block", new Vec3I(0, 2, 1), DOWN,
         REPEAT, false, false));
 
-    minecartCommands.add(new Command(
-        "kill @e[type=commandblock_minecart,dy=0,tag=" + getStructureName(structureId) + "]"));
+    if (!minecartCommands.isEmpty()) {
+      minecartCommands.add(new Command(
+          "kill @e[type=commandblock_minecart,dy=0,tag=" + getStructureName(structureId) + "]"));
+    }
     for (Command command : minecartCommands) {
       structure.addEntity(newCommandBlockMinecart(structureId, command));
     }
