@@ -71,6 +71,11 @@ public class Structure {
    */
   private String author;
   /**
+   * The size of this structure if defined explicitly or {@code null} if {@link #calcSize()} should
+   * be used.
+   */
+  private @Nullable Vec3I explicitSize;
+  /**
    * The {@link BlockState} used to fill the {@link Structure}, where there are no {@link #blocks}.
    */
   private @Nullable BlockState background;
@@ -111,6 +116,20 @@ public class Structure {
    */
   public void setAuthor(String author) {
     this.author = checkNotNull(author, "author == null!");
+  }
+
+  /**
+   * @return whether the value of {@link #explicitSize} is set
+   */
+  public boolean isSizeExplicit() {
+    return explicitSize != null;
+  }
+
+  /**
+   * @param explicitSize the new value of {@link #explicitSize}
+   */
+  public void setExplicitSize(Vec3I explicitSize) {
+    this.explicitSize = explicitSize;
   }
 
   /**
@@ -179,7 +198,12 @@ public class Structure {
    * @see #addBlock(Block)
    */
   public void replaceBlock(Block block) {
-    blocks.put(block.getCoordinate(), block);
+    Vec3I coordinate = block.getCoordinate();
+    if (!isWithinExplicitSize(coordinate)) {
+      throw new IllegalArgumentException("The block " + block
+          + " does not fit within the explicitely defined size: " + explicitSize);
+    }
+    blocks.put(coordinate, block);
   }
 
   /**
@@ -198,7 +222,29 @@ public class Structure {
    */
   public void addEntity(Entity entity) {
     checkNotNull(entity, "entity == null!");
+    if (!isWithinExplicitSize(entity.getCoordinate().floor())) {
+      throw new IllegalArgumentException("The entity " + entity
+          + " does not fit within the explicitely defined size: " + explicitSize);
+    }
     entities.add(entity);
+  }
+
+  private boolean isWithinExplicitSize(Vec3I coordinate) {
+    return explicitSize == null //
+        || (coordinate.x < explicitSize.x//
+            && coordinate.y < explicitSize.y//
+            && coordinate.z < explicitSize.z);
+  }
+
+  /**
+   * @return {@link #explicitSize} if it is set, {@link #calcSize()} otherwise
+   */
+  public Vec3I getSize() {
+    if (explicitSize != null) {
+      return explicitSize;
+    } else {
+      return calcSize();
+    }
   }
 
   /**
@@ -206,7 +252,7 @@ public class Structure {
    *
    * @return the required size
    */
-  public Vec3I getSize() {
+  public Vec3I calcSize() {
     return Stream.concat(//
         blocks.keySet().stream(), //
         entities.stream()//

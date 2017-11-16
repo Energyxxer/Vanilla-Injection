@@ -7,6 +7,7 @@ import static com.energyxxer.inject.v2.CommandBlock.Type.REPEAT;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static de.adrodoc55.minecraft.coordinate.Axis3.X;
 import static de.adrodoc55.minecraft.coordinate.Direction3.DOWN;
+import static de.adrodoc55.minecraft.coordinate.Vec3I.max;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +40,7 @@ import de.adrodoc55.minecraft.structure.Structure;
  * @author Adrodoc55
  */
 @ThreadSafe
-class InjectionBuffer {
+public class InjectionBuffer {
   private static final Logger LOGGER = LogManager.getLogger();
 
   /**
@@ -89,6 +90,11 @@ class InjectionBuffer {
    * </ul>
    */
   private final ReadWriteLock logAdminCommandsLock = new ReentrantReadWriteLock();
+
+  /**
+   * The minimal size of the next structure needed to clear all blocks of the previous structure.
+   */
+  private @Nullable Vec3I minSize;
 
   public InjectionBuffer(IntFunction<String> getStructureName) {
     this.getStructureName = checkNotNull(getStructureName, "getStructureName == null!");
@@ -180,20 +186,19 @@ class InjectionBuffer {
    * @return the generated {@link Structure} or {@code null} if {@code this} {@link InjectionBuffer}
    *         was already empty.
    */
-  public @Nullable Structure createStructure(int structureId) {
+  public synchronized @Nullable Structure createStructure(int structureId) {
+    if (isEmpty()) {
+      LOGGER.trace("Skipping creation of structure {} due to empty buffer", structureId);
+      return null;
+    }
     // WriteLock to prevent concurrent adding of commands that require admin command logging
-    // AND synchronize the structure creation itself to prevent empty structures
     logAdminCommandsLock.writeLock().lock();
     boolean logAdminCommands = this.logAdminCommands; // This copy is used after releasing the lock
+    this.logAdminCommands = false;
     List<Command> minecartCommands;
     List<Command> impulseCommands;
     List<Command> repeatCommands;
     try {
-      if (isEmpty()) {
-        LOGGER.trace("Skipping creation of structure {} due to empty buffer", structureId);
-        return null;
-      }
-      this.logAdminCommands = false;
       minecartCommands = new ArrayList<>(this.minecartCommands.size());
       for (Command command : Iterables.consumingIterable(this.minecartCommands)) {
         minecartCommands.add(command);
@@ -247,6 +252,13 @@ class InjectionBuffer {
 
     Vec3I repeatStart = impulseStart.plus(impulseSize.x, X);
     structure.addBlocks(createCommandBlocks(REPEAT, repeatStart, repeatSize, repeatCommands));
+
+    // Each structure has to be big enough to clear all blocks of the previous structure
+    Vec3I calcSize = structure.calcSize();
+    if (minSize != null) {
+      structure.setExplicitSize(max(minSize, calcSize));
+    }
+    minSize = calcSize;
 
     return structure;
   }
