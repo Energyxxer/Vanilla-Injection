@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -12,22 +11,29 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.common.io.CountingInputStream;
+
 /**
  * A {@link LogFileReader} is used to read new lines that have been added to a file since the last
  * call to {@link #readAddedLines(Charset, Consumer)} or alternatively the construction of the
  * {@link LogFileReader}.
  * <p>
- * To function properly the {@link #logFile} must use {@link System#lineSeparator()} as it's line
- * seperator and every line must be terminated by a line seperator. Otherwise the file content would
- * be shorter than expected which is considered to be a log file rotation.<br>
- * These two requirements are met by Minecraft's log file.
+ * To function properly every line in the {@link #logFile} must be terminated by a line seperator.
+ * Otherwise a line might be cut in half if content is added to the last line between calls to
+ * {@link #readAddedLines(Charset, Consumer)}.<br>
+ * This requirement is met by Minecraft's {@link #logFile}.
  * <p>
- * A {@link LogFileReader} can properly handle log file rotation (for instance when Minecraft is
- * restarted) and does not lock the log file.
+ * A {@link LogFileReader} does not lock the {@link #logFile} and can properly handle log file
+ * rotation (for instance when Minecraft is restarted).
  *
  * @author Adrodoc55
  */
 public class LogFileReader {
+  private static final Logger LOGGER = LogManager.getLogger();
+
   private final Path logFile;
   private long bytesRead;
 
@@ -53,25 +59,34 @@ public class LogFileReader {
    */
   public void readAddedLines(Charset charset, Consumer<String> lineConsumer) {
     try (// Open file without locking it
-        InputStream is = Files.newInputStream(logFile, StandardOpenOption.READ);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is, charset));) {
-      if (bytesRead > Files.size(logFile)) {
-        handleLogFileRotation();
-      } else { // Skip previously read lines
+        CountingInputStream is =
+            new CountingInputStream(Files.newInputStream(logFile, StandardOpenOption.READ));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is, charset))) {
+
+      // Skip previously read bytes if there was no log file rotation
+      if (bytesRead <= Files.size(logFile)) {
         is.skip(bytesRead);
+      } else {
+        LOGGER.info("Detected log file rotation due to change in size of log file: {}", logFile);
       }
-      String line;
-      while ((line = reader.readLine()) != null) {
-        // Every line in the log file must be terminated by a line separator
-        bytesRead += line.getBytes(charset).length + System.lineSeparator().length();
-        lineConsumer.accept(line);
+      try {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          lineConsumer.accept(line);
+        }
+      } catch (Exception ex) {
+        LOGGER.warn(
+            "Exception during log line processing, some bytes might be skipped due to buffering!",
+            ex);
+        throw ex;
+      } finally {
+        // Even though we use a BufferedReader the count is correct when the stream is exhausted
+        bytesRead = is.getCount();
       }
     } catch (IOException ex) {
-      handleLogFileRotation();
+      LOGGER.info("Interpreting exception as a log file rotation", ex);
+      // Log file rotation
+      bytesRead = 0;
     }
-  }
-
-  private void handleLogFileRotation() {
-    bytesRead = 0;
   }
 }

@@ -1,7 +1,7 @@
 package com.energyxxer.inject.level_utils;
 
 import com.energyxxer.inject.level_utils.block.Block;
-import com.energyxxer.inject.nbt.Tag;
+import com.energyxxer.inject.level_utils.nbt.Tag;
 
 import java.util.ArrayList;
 import java.util.Arrays;

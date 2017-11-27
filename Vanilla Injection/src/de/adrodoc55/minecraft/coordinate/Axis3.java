@@ -13,25 +13,25 @@ public enum Axis3 {
     }
 
     @Override
-    public double of(Coordinate3D c) {
+    public double of(Vec3D c) {
       return c.x;
     }
 
     @Override
-    public int of(Coordinate3I c) {
+    public int of(Vec3I c) {
       return c.x;
     }
 
     @Override
-    Coordinate3D plus(Coordinate3D c, double scalar) {
+    Vec3D plus(Vec3D c, double scalar) {
       double x = c.x + scalar;
-      return new Coordinate3D(x, c.y, c.z);
+      return new Vec3D(x, c.y, c.z);
     }
 
     @Override
-    Coordinate3I plus(Coordinate3I c, int scalar) {
+    Vec3I plus(Vec3I c, int scalar) {
       int x = c.x + scalar;
-      return new Coordinate3I(x, c.y, c.z);
+      return new Vec3I(x, c.y, c.z);
     }
   },
   Y {
@@ -41,25 +41,25 @@ public enum Axis3 {
     }
 
     @Override
-    public double of(Coordinate3D c) {
+    public double of(Vec3D c) {
       return c.y;
     }
 
     @Override
-    public int of(Coordinate3I c) {
+    public int of(Vec3I c) {
       return c.y;
     }
 
     @Override
-    Coordinate3D plus(Coordinate3D c, double scalar) {
+    Vec3D plus(Vec3D c, double scalar) {
       double y = c.y + scalar;
-      return new Coordinate3D(c.x, y, c.z);
+      return new Vec3D(c.x, y, c.z);
     }
 
     @Override
-    Coordinate3I plus(Coordinate3I c, int scalar) {
+    Vec3I plus(Vec3I c, int scalar) {
       int y = c.y + scalar;
-      return new Coordinate3I(c.x, y, c.z);
+      return new Vec3I(c.x, y, c.z);
     }
   },
   Z {
@@ -69,30 +69,30 @@ public enum Axis3 {
     }
 
     @Override
-    public double of(Coordinate3D c) {
+    public double of(Vec3D c) {
       return c.z;
     }
 
     @Override
-    public int of(Coordinate3I c) {
+    public int of(Vec3I c) {
       return c.z;
     }
 
     @Override
-    Coordinate3D plus(Coordinate3D c, double scalar) {
+    Vec3D plus(Vec3D c, double scalar) {
       double z = c.z + scalar;
-      return new Coordinate3D(c.x, c.y, z);
+      return new Vec3D(c.x, c.y, z);
     }
 
     @Override
-    Coordinate3I plus(Coordinate3I c, int scalar) {
+    Vec3I plus(Vec3I c, int scalar) {
       int z = c.z + scalar;
-      return new Coordinate3I(c.x, c.y, z);
+      return new Vec3I(c.x, c.y, z);
     }
   };
 
   /**
-   * Return the appropriate {@link Direction3} along this {@link Axis3}.
+   * Return the appropriate {@link Direction3} along {@code this} {@link Axis3}.
    *
    * @param negative whether to return the positive or negative {@link Direction3}
    * @return the appropriate {@link Direction3}
@@ -100,22 +100,40 @@ public enum Axis3 {
   public abstract Direction3 getDirection(boolean negative);
 
   /**
-   * Return the extend of the specified {@link Coordinate3D} along this {@link Axis3}.
+   * Return the positive {@link Direction3} along {@code this} {@link Axis3}.
    *
-   * @param c the {@link Coordinate3D}
-   * @return the extend of the {@link Coordinate3D}
+   * @return the positive {@link Direction3}
    */
-  public abstract double of(Coordinate3D c);
+  public Direction3 getPositiveDirection() {
+    return getDirection(false);
+  }
 
   /**
-   * Return the extend of the specified {@link Coordinate3I} along this {@link Axis3}.
+   * Return the negative {@link Direction3} along {@code this} {@link Axis3}.
    *
-   * @param c the {@link Coordinate3I}
-   * @return the extend of the {@link Coordinate3I}
+   * @return the negative {@link Direction3}
    */
-  public abstract int of(Coordinate3I c);
+  public Direction3 getNegativeDirection() {
+    return getDirection(true);
+  }
 
-  abstract Coordinate3D plus(Coordinate3D c, double scalar);
+  /**
+   * Return the extend of the specified {@link Vec3D} along {@code this}{@link Axis3}.
+   *
+   * @param c the {@link Vec3D}
+   * @return the extend of the {@link Vec3D}
+   */
+  public abstract double of(Vec3D c);
 
-  abstract Coordinate3I plus(Coordinate3I c, int scalar);
+  /**
+   * Return the extend of the specified {@link Vec3I} along {@code this}{@link Axis3}.
+   *
+   * @param c the {@link Vec3I}
+   * @return the extend of the {@link Vec3I}
+   */
+  public abstract int of(Vec3I c);
+
+  abstract Vec3D plus(Vec3D c, double scalar);
+
+  abstract Vec3I plus(Vec3I c, int scalar);
 }

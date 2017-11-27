@@ -2,16 +2,21 @@ package de.adrodoc55.minecraft.structure;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.annotation.Nullable;
 
+import com.evilco.mc.nbt.stream.NbtOutputStream;
 import com.evilco.mc.nbt.tag.ITag;
 import com.evilco.mc.nbt.tag.TagCompound;
 import com.evilco.mc.nbt.tag.TagDouble;
@@ -19,9 +24,10 @@ import com.evilco.mc.nbt.tag.TagInteger;
 import com.evilco.mc.nbt.tag.TagList;
 import com.evilco.mc.nbt.tag.TagString;
 import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 
-import de.adrodoc55.minecraft.coordinate.Coordinate3D;
-import de.adrodoc55.minecraft.coordinate.Coordinate3I;
+import de.adrodoc55.minecraft.coordinate.Vec3D;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 
 /**
  * A {@link Structure} is used to build the contents of a
@@ -32,26 +38,26 @@ import de.adrodoc55.minecraft.coordinate.Coordinate3I;
  * @author Adrodoc55
  */
 public class Structure {
-  static List<ITag> toNbt(Coordinate3D coordinate) {
+  static List<ITag> toNbt(Vec3D pos) {
     return Arrays.asList(//
-        new TagDouble("", coordinate.x), //
-        new TagDouble("", coordinate.y), //
-        new TagDouble("", coordinate.z) //
+        new TagDouble("", pos.x), //
+        new TagDouble("", pos.y), //
+        new TagDouble("", pos.z) //
     );
   }
 
-  static List<ITag> toNbt(Coordinate3I coordinate) {
+  static List<ITag> toNbt(Vec3I pos) {
     return Arrays.asList(//
-        new TagInteger("", coordinate.x), //
-        new TagInteger("", coordinate.y), //
-        new TagInteger("", coordinate.z) //
+        new TagInteger("", pos.x), //
+        new TagInteger("", pos.y), //
+        new TagInteger("", pos.z) //
     );
   }
 
   /**
    * The {@link Block}s of this {@link Structure}.
    */
-  private final Map<Coordinate3I, Block> blocks = new HashMap<>();
+  private final Map<Vec3I, Block> blocks = new LinkedHashMap<>();
   /**
    * The {@link Entity entities} of this {@link Structure}.
    */
@@ -64,6 +70,11 @@ public class Structure {
    * The author of this {@link Structure}.
    */
   private String author;
+  /**
+   * The size of this structure if defined explicitly or {@code null} if {@link #calcSize()} should
+   * be used.
+   */
+  private @Nullable Vec3I explicitSize;
   /**
    * The {@link BlockState} used to fill the {@link Structure}, where there are no {@link #blocks}.
    */
@@ -108,6 +119,20 @@ public class Structure {
   }
 
   /**
+   * @return whether the value of {@link #explicitSize} is set
+   */
+  public boolean isSizeExplicit() {
+    return explicitSize != null;
+  }
+
+  /**
+   * @param explicitSize the new value of {@link #explicitSize}
+   */
+  public void setExplicitSize(Vec3I explicitSize) {
+    this.explicitSize = explicitSize;
+  }
+
+  /**
    * @return the value of {@link #background}
    */
   public @Nullable BlockState getBackground() {
@@ -144,7 +169,7 @@ public class Structure {
    * @throws IllegalArgumentException if there is already a {@link Block} at the same coordinate
    */
   public void addBlock(Block block) throws IllegalArgumentException {
-    Coordinate3I coordinate = block.getCoordinate();
+    Vec3I coordinate = block.getCoordinate();
     if (blocks.containsKey(coordinate)) {
       throw new IllegalArgumentException(
           "There is already a block associated with the coordinate " + coordinate);
@@ -173,7 +198,12 @@ public class Structure {
    * @see #addBlock(Block)
    */
   public void replaceBlock(Block block) {
-    blocks.put(block.getCoordinate(), block);
+    Vec3I coordinate = block.getCoordinate();
+    if (!isWithinExplicitSize(coordinate)) {
+      throw new IllegalArgumentException("The block " + block
+          + " does not fit within the explicitely defined size: " + explicitSize);
+    }
+    blocks.put(coordinate, block);
   }
 
   /**
@@ -192,7 +222,29 @@ public class Structure {
    */
   public void addEntity(Entity entity) {
     checkNotNull(entity, "entity == null!");
+    if (!isWithinExplicitSize(entity.getCoordinate().floor())) {
+      throw new IllegalArgumentException("The entity " + entity
+          + " does not fit within the explicitely defined size: " + explicitSize);
+    }
     entities.add(entity);
+  }
+
+  private boolean isWithinExplicitSize(Vec3I coordinate) {
+    return explicitSize == null //
+        || (coordinate.x < explicitSize.x//
+            && coordinate.y < explicitSize.y//
+            && coordinate.z < explicitSize.z);
+  }
+
+  /**
+   * @return {@link #explicitSize} if it is set, {@link #calcSize()} otherwise
+   */
+  public Vec3I getSize() {
+    if (explicitSize != null) {
+      return explicitSize;
+    } else {
+      return calcSize();
+    }
   }
 
   /**
@@ -200,15 +252,31 @@ public class Structure {
    *
    * @return the required size
    */
-  public Coordinate3I getSize() {
+  public Vec3I calcSize() {
     return Stream.concat(//
         blocks.keySet().stream(), //
         entities.stream()//
             .map(Entity::getCoordinate)//
-            .map(Coordinate3D::floor)//
-    ).reduce(Coordinate3I.getBinaryOperator(Math::max))//
-        .map(c -> c.plus(new Coordinate3I(1, 1, 1)))//
-        .orElse(new Coordinate3I());
+            .map(Vec3D::floor)//
+    ).reduce(Vec3I::max)//
+        .map(c -> c.plus(new Vec3I(1, 1, 1)))//
+        .orElse(new Vec3I());
+  }
+
+  /**
+   * Write the <a href="https://minecraft-de.gamepedia.com/NBT-Format">NBT</a> obtained by calling
+   * {@link #toNbt()} to the specified {@link File}.
+   *
+   * @param file the {@link File} to write to
+   * @throws IOException if an I/O error has occurred
+   */
+  public void writeTo(File file) throws IOException {
+    Files.createParentDirs(file);
+    TagCompound nbt = toNbt();
+    try (NbtOutputStream out =
+        new NbtOutputStream(new GZIPOutputStream(new FileOutputStream(file)))) {
+      out.write(nbt);
+    }
   }
 
   /**
@@ -221,13 +289,13 @@ public class Structure {
     TagCompound result = new TagCompound("");
     result.setTag(new TagInteger("DataVersion", dataVersion));
     result.setTag(new TagString("author", author));
-    Coordinate3I size = getSize();
+    Vec3I size = getSize();
     List<Block> blocks = new ArrayList<>(this.blocks.values());
     if (background != null) {
       for (int x = 0; x < size.getX(); x++) {
         for (int y = 0; y < size.getY(); y++) {
           for (int z = 0; z < size.getZ(); z++) {
-            Coordinate3I coordinate = new Coordinate3I(x, y, z);
+            Vec3I coordinate = new Vec3I(x, y, z);
             if (!this.blocks.containsKey(coordinate)) {
               blocks.add(new SimpleBlock(background, coordinate));
             }
