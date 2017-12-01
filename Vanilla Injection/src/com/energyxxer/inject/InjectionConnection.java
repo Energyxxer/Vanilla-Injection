@@ -460,23 +460,28 @@ public class InjectionConnection implements AutoCloseable {
   }
 
   private void schedulePeriodicFlush() {
-    flushFuture = executor.scheduleAtFixedRate(() -> {
-      try {
-        if (isTimedOut()) {
-          logger.warn("Connection timed out");
-          pause();
-        } else {
-          flush();
-        }
-      } catch (Throwable t1) {
-        logger.error("Periodic flush encountered an error", t1);
-        try {
-          close();
-        } catch (Throwable t2) {
-          logger.error("Closing encountered an error", t2);
-        }
+    flushFuture = executor.scheduleAtFixedRate(this::periodicFlush, 0, flushPeriod, flushTimeUnit);
+  }
+
+  private synchronized void periodicFlush() {
+    if (isClosed()) {
+      return; // Early exit if the connection was just closed concurrently
+    }
+    try {
+      if (isTimedOut()) {
+        logger.warn("Connection timed out");
+        pause();
+      } else {
+        flush();
       }
-    }, 0, flushPeriod, flushTimeUnit);
+    } catch (Throwable t1) {
+      logger.error("Periodic flush encountered an error", t1);
+      try {
+        close();
+      } catch (Throwable t2) {
+        logger.error("Closing encountered an error", t2);
+      }
+    }
   }
 
   private void cancelPeriodicFlush() {
