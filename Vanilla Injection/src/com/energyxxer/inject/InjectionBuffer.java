@@ -64,8 +64,17 @@ public class InjectionBuffer {
    */
   private Vec3I repeatSize = new Vec3I(2, 5, 5);
 
+  /**
+   * The {@link Command}s that should be injected as {@link CommandBlockMinecart}s.
+   */
   private final Collection<Command> minecartCommands = new ConcurrentLinkedQueue<>();
+  /**
+   * The {@link Command}s that should be injected as {@link Type#IMPULSE} {@link CommandBlock}s.
+   */
   private final Collection<Command> impulseCommands = new ConcurrentLinkedQueue<>();
+  /**
+   * The {@link Command}s that should be injected as {@link Type#REPEAT} {@link CommandBlock}s.
+   */
   private final Collection<Command> repeatCommands = new ConcurrentLinkedQueue<>();
 
   /**
@@ -161,36 +170,55 @@ public class InjectionBuffer {
     this.repeatSize = checkNotNull(repeatSize, "repeatSize == null!");
   }
 
-  public void addMinecartCommand(Command command) {
-    minecartCommands.add(command);
+  /**
+   * @author Adrodoc55
+   */
+  public enum InjectionType {
+    MINECART {
+      @Override
+      protected Collection<Command> getCommandCollection(InjectionBuffer buffer) {
+        return buffer.minecartCommands;
+      }
+    }, //
+    IMPULSE {
+      @Override
+      protected Collection<Command> getCommandCollection(InjectionBuffer buffer) {
+        return buffer.impulseCommands;
+      }
+    }, //
+    REPEAT {
+      @Override
+      protected Collection<Command> getCommandCollection(InjectionBuffer buffer) {
+        return buffer.repeatCommands;
+      }
+    }, //
+    ;
+    protected abstract Collection<Command> getCommandCollection(InjectionBuffer buffer);
   }
 
-  public void addMinecartFetchCommand(Command command) {
+  public void addCommand(InjectionType type, Command command) {
+    checkNotNull(type, "type == null!");
+    Collection<Command> commandCollection = type.getCommandCollection(this);
+    commandCollection.add(command);
+  }
+
+  public void addCommands(InjectionType type, Collection<? extends Command> commands) {
+    checkNotNull(type, "type == null!");
+    Collection<Command> commandCollection = type.getCommandCollection(this);
+    commandCollection.addAll(commands);
+  }
+
+  public void addFetchCommand(InjectionType type, Command command) {
     runLocked(logAdminCommandsLock.readLock(), () -> {
-      addMinecartCommand(command);
+      addCommand(type, command);
       logMinecartCommands = true;
     });
   }
 
-  public void addImpulseCommand(Command command) {
-    impulseCommands.add(command);
-  }
-
-  public void addImpulseFetchCommand(Command command) {
+  public void addFetchCommands(InjectionType type, Collection<? extends Command> commands) {
     runLocked(logAdminCommandsLock.readLock(), () -> {
-      addImpulseCommand(command);
-      logImpulseCommands = true;
-    });
-  }
-
-  public void addRepeatCommand(Command command) {
-    repeatCommands.add(command);
-  }
-
-  public void addRepeatFetchCommand(Command command) {
-    runLocked(logAdminCommandsLock.readLock(), () -> {
-      addRepeatCommand(command);
-      logRepeatCommands = true;
+      addCommands(type, commands);
+      logMinecartCommands = true;
     });
   }
 

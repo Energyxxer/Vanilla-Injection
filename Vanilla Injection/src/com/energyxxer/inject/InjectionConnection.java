@@ -1,5 +1,6 @@
 package com.energyxxer.inject;
 
+import static com.energyxxer.inject.InjectionBuffer.InjectionType.IMPULSE;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -36,6 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.Integers;
 
+import com.energyxxer.inject.InjectionBuffer.InjectionType;
 import com.energyxxer.inject.structure.Command;
 import com.energyxxer.log.MinecraftLogObserver;
 import com.energyxxer.log.SuccessEvent;
@@ -274,7 +276,7 @@ public class InjectionConnection implements AutoCloseable {
         this.structureId.set(structureId);
         logger.info("Using structure '{}'", getStructureName(structureId));
         Semaphore semaphore = new Semaphore(0);
-        injectAsImpulse(SUCCESSFUL_COMMAND, e -> {
+        inject(IMPULSE, SUCCESSFUL_COMMAND, e -> {
           confirmStructure(structureId);
           semaphore.release();
         });
@@ -572,7 +574,7 @@ public class InjectionConnection implements AutoCloseable {
    */
   private void injectTimeoutCheckIfNeccessary(int structureId) {
     if (lastConfirmedStructureId != -1 && structureId % TIME_OUT_CHECK_FREQUENCY == 0) {
-      injectAsImpulse(SUCCESSFUL_COMMAND, e -> {
+      inject(IMPULSE, SUCCESSFUL_COMMAND, e -> {
         confirmStructure(structureId);
         if (isPaused() && !isTimedOut()) {
           logger.warn("Connection is no longer timed out");
@@ -626,8 +628,8 @@ public class InjectionConnection implements AutoCloseable {
     }
   }
 
-  private void addSuccessListener(String name, boolean repeat, Consumer<SuccessEvent> consumer) {
-    addSuccessListener(new SuccessListener(name, repeat, consumer));
+  private void addSuccessListener(String name, boolean repeat, Consumer<SuccessEvent> listener) {
+    addSuccessListener(new SuccessListener(name, repeat, listener));
   }
 
   private void addSuccessListener(SuccessListener successListener) {
@@ -667,70 +669,60 @@ public class InjectionConnection implements AutoCloseable {
     injectionBuffer.setRepeatSize(repeatSize);
   }
 
-  public void injectAsMinecart(String command) throws IllegalStateException {
-    injectAsMinecart(new Command(command));
+  /**
+   * Inject the specified {@code command} according to the specified {@link InjectionType}.
+   *
+   * @param type the {@link InjectionType}
+   * @param command
+   * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
+   */
+  public void inject(InjectionType type, String command) throws IllegalStateException {
+    inject(type, new Command(command));
   }
 
-  public void injectAsMinecart(Command command) throws IllegalStateException {
+  /**
+   * Inject the specified {@link Command} according to the specified {@link InjectionType}.
+   *
+   * @param type the {@link InjectionType}
+   * @param command the {@link Command}
+   * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
+   */
+  public void inject(InjectionType type, Command command) throws IllegalStateException {
     checkOpen();
-    injectionBuffer.addMinecartCommand(command);
+    injectionBuffer.addCommand(type, command);
   }
 
-  public void injectAsMinecart(String command, Consumer<SuccessEvent> listener)
+  /**
+   * Inject the specified {@code command} according to the specified {@link InjectionType} and
+   * register the {@link SuccessEvent} listener for {@link Command#getName()}.
+   *
+   * @param type the {@link InjectionType}
+   * @param command
+   * @param listener the {@link SuccessEvent} listener
+   * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
+   */
+  public void inject(InjectionType type, String command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     String name = UUID.randomUUID().toString();
-    injectAsMinecart(new Command(name, command), listener);
+    inject(type, new Command(name, command), listener);
   }
 
-  public void injectAsMinecart(Command command, Consumer<SuccessEvent> listener)
+  /**
+   * Inject the specified {@link Command} according to the specified {@link InjectionType} and
+   * register the {@link SuccessEvent} listener for {@link Command#getName()}.
+   *
+   * @param type the {@link InjectionType}
+   * @param command the {@link Command}
+   * @param listener the {@link SuccessEvent} listener
+   * @throws IllegalStateException if {@code this} connection is not {@link #isOpen() open}
+   */
+  public void inject(InjectionType type, Command command, Consumer<SuccessEvent> listener)
       throws IllegalStateException {
     checkOpen();
-    injectionBuffer.addMinecartFetchCommand(command);
-    addSuccessListener(command.getName(), false, listener);
-  }
-
-  public void injectAsImpulse(String command) throws IllegalStateException {
-    injectAsImpulse(new Command(command));
-  }
-
-  public void injectAsImpulse(Command command) throws IllegalStateException {
-    checkOpen();
-    injectionBuffer.addImpulseCommand(command);
-  }
-
-  public void injectAsImpulse(String command, Consumer<SuccessEvent> listener)
-      throws IllegalStateException {
-    String name = UUID.randomUUID().toString();
-    injectAsImpulse(new Command(name, command), listener);
-  }
-
-  public void injectAsImpulse(Command command, Consumer<SuccessEvent> listener)
-      throws IllegalStateException {
-    checkOpen();
-    injectionBuffer.addImpulseFetchCommand(command);
-    addSuccessListener(command.getName(), false, listener);
-  }
-
-  public void injectAsRepeat(String command) throws IllegalStateException {
-    injectAsRepeat(new Command(command));
-  }
-
-  public void injectAsRepeat(Command command) throws IllegalStateException {
-    checkOpen();
-    injectionBuffer.addRepeatCommand(command);
-  }
-
-  public void injectAsRepeat(String command, Consumer<SuccessEvent> listener)
-      throws IllegalStateException {
-    String name = UUID.randomUUID().toString();
-    injectAsRepeat(new Command(name, command), listener);
-  }
-
-  public void injectAsRepeat(Command command, Consumer<SuccessEvent> listener)
-      throws IllegalStateException {
-    checkOpen();
-    injectionBuffer.addRepeatFetchCommand(command);
-    addSuccessListener(command.getName(), true, listener);
+    injectionBuffer.addFetchCommand(type, command);
+    String name = command.getName();
+    boolean repeat = type == InjectionType.REPEAT;
+    addSuccessListener(name, repeat, listener);
   }
 
   @Override
