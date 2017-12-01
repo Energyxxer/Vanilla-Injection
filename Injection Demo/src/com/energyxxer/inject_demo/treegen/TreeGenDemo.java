@@ -1,5 +1,6 @@
 package com.energyxxer.inject_demo.treegen;
 
+import static com.energyxxer.inject.InjectionBuffer.InjectionType.IMPULSE;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.File;
@@ -45,7 +46,7 @@ public class TreeGenDemo implements SetupListener {
             //master.injectImpulseCommand("tellraw @a {\"text\":\"Generating a tree...\"}");
             Tree gen = new Tree(connection);
             gen.generate();
-            connection.injectAsImpulse("kill @e[type=armor_stand,name=$genTree]");
+            connection.inject(IMPULSE, "kill @e[type=armor_stand,name=$genTree]");
         });
 
         connection.getLogObserver().addChatListener(l -> {
@@ -54,75 +55,75 @@ public class TreeGenDemo implements SetupListener {
             if(args.length < 1) return;
             if(args[0].equalsIgnoreCase(".setMinTreeHeight")) {
                 if(args.length < 2) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Usage: .setMinTreeHeight <int>\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Usage: .setMinTreeHeight <int>\",\"color\":\"red\"}]");
                     return;
                 }
                 String rawInput = args[1];
                 try {
                     Tree.setMinTreeHeight(Integer.parseInt(rawInput));
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Minimum tree height set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Minimum tree height set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
                 } catch(NumberFormatException x) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
                 }
             } else if(args[0].equalsIgnoreCase(".setMaxTreeHeight")) {
                 if(args.length < 2) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Usage: .setMaxTreeHeight <int>\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Usage: .setMaxTreeHeight <int>\",\"color\":\"red\"}]");
                     return;
                 }
                 String rawInput = args[1];
                 try {
                     Tree.setMaxTreeHeight(Integer.parseInt(rawInput));
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Maximum tree height set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Maximum tree height set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
                 } catch(NumberFormatException x) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
                 }
             } else if(args[0].equalsIgnoreCase(".setBranchChance")) {
                 if(args.length < 2) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Usage: .setBranchChance <double>\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Usage: .setBranchChance <double>\",\"color\":\"red\"}]");
                     return;
                 }
                 String rawInput = args[1];
                 try {
                     Tree.setBranchChance(Double.parseDouble(rawInput));
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Branch chance set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Branch chance set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
                 } catch(NumberFormatException x) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
                 }
             } else if(args[0].equalsIgnoreCase(".setMinBranchLength")) {
                 if(args.length < 2) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Usage: .setMinBranchLength <int>\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Usage: .setMinBranchLength <int>\",\"color\":\"red\"}]");
                     return;
                 }
                 String rawInput = args[1];
                 try {
                     TreeBranch.setMinLength(Integer.parseInt(rawInput));
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Minimum branch length set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Minimum branch length set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
                 } catch(NumberFormatException x) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
                 }
             } else if(args[0].equalsIgnoreCase(".setMaxBranchLength")) {
                 if(args.length < 2) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Usage: .setMaxBranchLength <int>\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Usage: .setMaxBranchLength <int>\",\"color\":\"red\"}]");
                     return;
                 }
                 String rawInput = args[1];
                 try {
                     TreeBranch.setMaxLength(Integer.parseInt(rawInput));
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Maximum branch length set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Maximum branch length set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
                 } catch(NumberFormatException x) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
                 }
             } else if(args[0].equalsIgnoreCase(".setBaseHeight")) {
                 if(args.length < 2) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Usage: .setBaseHeight <int>\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Usage: .setBaseHeight <int>\",\"color\":\"red\"}]");
                     return;
                 }
                 String rawInput = args[1];
                 try {
                     Tree.setBaseHeight(Integer.parseInt(rawInput));
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Base height set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Base height set to " + rawInput + "\",\"color\":\"dark_aqua\"}]");
                 } catch(NumberFormatException x) {
-                    connection.injectAsImpulse("tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
+                    connection.inject(IMPULSE, "tellraw " + l.getSender() + " [{\"text\":\"Invalid input '" + rawInput + "'\",\"color\":\"red\"}]");
                 }
             }
         });

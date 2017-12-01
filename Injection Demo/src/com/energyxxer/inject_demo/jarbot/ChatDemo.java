@@ -1,5 +1,6 @@
 package com.energyxxer.inject_demo.jarbot;
 
+import static com.energyxxer.inject.InjectionBuffer.InjectionType.IMPULSE;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.File;
@@ -46,7 +47,7 @@ public class ChatDemo implements SetupListener {
     }
 
     private static void answer(String message, String username) {
-        connection.injectAsImpulse("tellraw " + ((username != null) ? username : "@a") + " [{\"text\":\"§8[§bJarbot§8] \"},{\"text\":\"" + message.replace("\\","\\\\").replace("\"","\\\"") + "\",\"color\":\"gray\"}]");
-        connection.injectAsImpulse("function lab:jarbot_graphics/voice/talk");
+        connection.inject(IMPULSE, "tellraw " + ((username != null) ? username : "@a") + " [{\"text\":\"§8[§bJarbot§8] \"},{\"text\":\"" + message.replace("\\","\\\\").replace("\"","\\\"") + "\",\"color\":\"gray\"}]");
+        connection.inject(IMPULSE, "function lab:jarbot_graphics/voice/talk");
     }
 }

@@ -1,11 +1,14 @@
 package com.energyxxer.inject_demo.worldedit;
 
+import static com.energyxxer.inject.InjectionBuffer.InjectionType.IMPULSE;
+import static com.energyxxer.inject.InjectionBuffer.InjectionType.MINECART;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
+import java.util.function.Consumer;
 
 import com.energyxxer.inject.InjectionConnection;
 import com.energyxxer.inject.level_utils.LevelReader;
@@ -15,6 +18,7 @@ import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;
 import com.energyxxer.log.ChatEvent;
+import com.energyxxer.log.SuccessEvent;
 
 /**
  * Created by User on 4/13/2017.
@@ -59,7 +63,7 @@ public class WorldEdit implements SetupListener{
                 playerInfo.get(username).updateEditPos(pos, connection, reader);
             } else {
                 playerInfo.put(username, new WEPlayerInfo(username));
-                connection.injectAsImpulse("tellraw @a {\"text\":\"[WARNING]: Player '" + username + "' requested an action but wasn't found on the player database.\",\"color\":\"yellow\"}");
+                connection.inject(IMPULSE, "tellraw @a {\"text\":\"[WARNING]: Player '" + username + "' requested an action but wasn't found on the player database.\",\"color\":\"yellow\"}");
             }
         });
 
@@ -70,7 +74,7 @@ public class WorldEdit implements SetupListener{
                     int index = (args[0].endsWith("1")) ? 1 : 2;
                     if(args.length > 1) {
                         if(args.length != 4) {
-                            connection.injectAsImpulse("tellraw " + m.getSender() + "{\"text\":\"Usage: ..pos" + index + " <x y z>\",\"color\":\"red\"}");
+                            connection.inject(IMPULSE, "tellraw " + m.getSender() + "{\"text\":\"Usage: ..pos" + index + " <x y z>\",\"color\":\"red\"}");
                         } else {
                             try {
                                 int x = Integer.parseInt(args[1]);
@@ -79,14 +83,14 @@ public class WorldEdit implements SetupListener{
                                 WEPlayerInfo player = playerInfo.get(m.getSender());
                                 player.updateEditPos(index, new Vector3D(x,y,z), connection);
                             } catch(NumberFormatException x) {
-                                connection.injectAsImpulse("tellraw " + m.getSender() + "{\"text\":\"Usage: ..pos" + index + " <x y z>\",\"color\":\"red\"}");
+                                connection.inject(IMPULSE, "tellraw " + m.getSender() + "{\"text\":\"Usage: ..pos" + index + " <x y z>\",\"color\":\"red\"}");
                             }
                         }
                     } else {
-                        connection.injectAsMinecart("execute " + m.getSender() + " ~ ~ ~ summon area_effect_cloud ~ ~ ~ {CustomName:\"$weTransform\",Duration:2}");
-                        connection.injectAsMinecart("tp @e[type=area_effect_cloud,name=$weTransform,c=1] " + m.getSender());
-                        connection.injectAsMinecart("execute " + m.getSender() + " ~ ~ ~ entitydata @e[type=area_effect_cloud,name=$weTransform,c=1] {we:transform}");
-                        connection.injectAsMinecart("testfor " + m.getSender(), e -> {
+                        connection.inject(MINECART, "execute " + m.getSender() + " ~ ~ ~ summon area_effect_cloud ~ ~ ~ {CustomName:\"$weTransform\",Duration:2}");
+                        connection.inject(MINECART, "tp @e[type=area_effect_cloud,name=$weTransform,c=1] " + m.getSender());
+                        connection.inject(MINECART, "execute " + m.getSender() + " ~ ~ ~ entitydata @e[type=area_effect_cloud,name=$weTransform,c=1] {we:transform}");
+                        connection.inject(MINECART, "testfor " + m.getSender(), (Consumer<SuccessEvent>) e -> {
                             WEPlayerInfo player = playerInfo.get(m.getSender());
                             player.updateEditPos(index, player.transform.asVector().asIntVector(), connection);
                         });
@@ -97,13 +101,13 @@ public class WorldEdit implements SetupListener{
                         if(player != null && player.pos1 != null && player.pos2 != null) {
                             String block = parseBlockReference(args[1], "default", m);
                             if(block == null) return;
-                            connection.injectAsImpulse("title " + m.getSender() + " actionbar {\"text\":\"Setting region to " + BlockType.valueOf(block.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
+                            connection.inject(IMPULSE, "title " + m.getSender() + " actionbar {\"text\":\"Setting region to " + BlockType.valueOf(block.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
                             splitFill(connection, player.pos1, player.pos2, block);
                         } else {
-                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
+                            connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
                         }
                     } else {
-                        connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage: ..set <block>\",\"color\":\"red\"}");
+                        connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"Usage: ..set <block>\",\"color\":\"red\"}");
                     }
                 } else if(args[0].equals("..walls")) {
                     if(args.length >= 2 && args.length <= 3) {
@@ -117,16 +121,16 @@ public class WorldEdit implements SetupListener{
                                 if(block2 == null) return;
                             }
                             String postCoordinateArgs = (args.length > 2) ? block2 + " replace " + block : block;
-                            connection.injectAsImpulse("title " + m.getSender() + " actionbar {\"text\":\"Setting region's walls to " + BlockType.valueOf(block.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
+                            connection.inject(IMPULSE, "title " + m.getSender() + " actionbar {\"text\":\"Setting region's walls to " + BlockType.valueOf(block.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
                             splitFill(connection, new Vector3D(player.pos1.x, player.pos1.y, player.pos1.z), new Vector3D(player.pos2.x, player.pos2.y, player.pos1.z), postCoordinateArgs);
                             splitFill(connection, new Vector3D(player.pos1.x, player.pos1.y, player.pos1.z), new Vector3D(player.pos1.x, player.pos2.y, player.pos2.z), postCoordinateArgs);
                             splitFill(connection, new Vector3D(player.pos2.x, player.pos1.y, player.pos2.z), new Vector3D(player.pos1.x, player.pos2.y, player.pos2.z), postCoordinateArgs);
                             splitFill(connection, new Vector3D(player.pos2.x, player.pos1.y, player.pos2.z), new Vector3D(player.pos2.x, player.pos2.y, player.pos1.z), postCoordinateArgs);
                         } else {
-                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
+                            connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
                         }
                     } else {
-                        connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage: ..walls <block>\",\"color\":\"red\"}");
+                        connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"Usage: ..walls <block>\",\"color\":\"red\"}");
                     }
                 } else if(args[0].equals("..replace")) {
                     if(args.length == 3) {
@@ -136,28 +140,28 @@ public class WorldEdit implements SetupListener{
                             if(target == null) return;
                             String replacement = parseBlockReference(args[2], "default", m);
                             if(replacement == null) return;
-                            connection.injectAsImpulse("title " + m.getSender() + " actionbar {\"text\":\"Replacing " + BlockType.valueOf(target.split(" ")[0].toUpperCase()).name + " with " + BlockType.valueOf(replacement.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
+                            connection.inject(IMPULSE, "title " + m.getSender() + " actionbar {\"text\":\"Replacing " + BlockType.valueOf(target.split(" ")[0].toUpperCase()).name + " with " + BlockType.valueOf(replacement.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
                             splitFill(connection, player.pos1, player.pos2, replacement + " replace " + target);
                         } else {
-                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
+                            connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
                         }
                     } else {
-                        connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage:\\n    ..replace <target> <replacement>\",\"color\":\"red\"}");
+                        connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"Usage:\\n    ..replace <target> <replacement>\",\"color\":\"red\"}");
                     }
                 } else if(args[0].equals("..up")) {
                     if(args.length == 2) {
                         try {
                             int amount = Integer.parseInt(args[1]);
-                            connection.injectAsImpulse("execute " + m.getSender() + " ~ ~ ~ summon leash_knot ~ ~" + amount + " ~ {CustomName:\"we_up_" + m.getSender() + "\"}");
-                            connection.injectAsImpulse("execute @e[type=leash_knot,name=we_up_" + m.getSender() + "] ~ ~ ~ teleport " + m.getSender() + " ~ ~-0.5 ~");
-                            connection.injectAsImpulse("execute @e[type=leash_knot,name=we_up_" + m.getSender() + "] ~ ~ ~ setblock ~ ~-1 ~ glass");
-                            connection.injectAsImpulse("kill @e[type=leash_knot,name=we_up_" + m.getSender() + "]");
-                            connection.injectAsImpulse("title " + m.getSender() + " actionbar {\"text\":\"Whoosh!\",\"color\":\"yellow\"}");
+                            connection.inject(IMPULSE, "execute " + m.getSender() + " ~ ~ ~ summon leash_knot ~ ~" + amount + " ~ {CustomName:\"we_up_" + m.getSender() + "\"}");
+                            connection.inject(IMPULSE, "execute @e[type=leash_knot,name=we_up_" + m.getSender() + "] ~ ~ ~ teleport " + m.getSender() + " ~ ~-0.5 ~");
+                            connection.inject(IMPULSE, "execute @e[type=leash_knot,name=we_up_" + m.getSender() + "] ~ ~ ~ setblock ~ ~-1 ~ glass");
+                            connection.inject(IMPULSE, "kill @e[type=leash_knot,name=we_up_" + m.getSender() + "]");
+                            connection.inject(IMPULSE, "title " + m.getSender() + " actionbar {\"text\":\"Whoosh!\",\"color\":\"yellow\"}");
                         } catch(NumberFormatException x) {
-                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage:\\n    ..up <number of blocks>\",\"color\":\"red\"}");
+                            connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"Usage:\\n    ..up <number of blocks>\",\"color\":\"red\"}");
                         }
                     } else {
-                        connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage:\\n    ..up <number of blocks>\",\"color\":\"red\"}");
+                        connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"Usage:\\n    ..up <number of blocks>\",\"color\":\"red\"}");
                     }
                 } else if(args[0].equals("..center")) {
                     if(args.length == 2) {
@@ -165,7 +169,7 @@ public class WorldEdit implements SetupListener{
                         if(player != null && player.pos1 != null && player.pos2 != null) {
                             String block = parseBlockReference(args[1], "default", m);
                             if(block == null) return;
-                            connection.injectAsImpulse("title " + m.getSender() + " actionbar {\"text\":\"Setting region's center to " + BlockType.valueOf(block.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
+                            connection.inject(IMPULSE, "title " + m.getSender() + " actionbar {\"text\":\"Setting region's center to " + BlockType.valueOf(block.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
                             splitFill(connection,
                                     new Vector3D(
                                             (int) Math.floor((player.pos2.x+player.pos1.x)/2.0),
@@ -177,10 +181,10 @@ public class WorldEdit implements SetupListener{
                                             (int) Math.ceil((player.pos2.z+player.pos1.z)/2.0)),
                                     block);
                         } else {
-                            connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
+                            connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
                         }
                     } else {
-                        connection.injectAsImpulse("tellraw " + m.getSender() + " {\"text\":\"Usage: ..center <block>\",\"color\":\"red\"}");
+                        connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"Usage: ..center <block>\",\"color\":\"red\"}");
                     }
                 }
             }
@@ -225,13 +229,13 @@ public class WorldEdit implements SetupListener{
 
     private static String parseBlockReference(String str, String defData, ChatEvent e) {
         if(str.contains(":") && str.contains("#")) {
-            connection.injectAsImpulse("tellraw " + e.getSender() + " {\"text\":\"Cannot have both data values and blockstates in a block reference: " + str + "\",\"color\":\"red\"}");
+            connection.inject(IMPULSE, "tellraw " + e.getSender() + " {\"text\":\"Cannot have both data values and blockstates in a block reference: " + str + "\",\"color\":\"red\"}");
             return null;
         }
         boolean blockstate = str.contains("#");
         String rawBlock[] = str.split("[:#]");
         if((str.contains(":") || str.contains("#")) && rawBlock.length == 1) {
-            connection.injectAsImpulse("tellraw " + e.getSender() + " {\"text\":\"Invalid block reference: " + str + "\",\"color\":\"red\"}");
+            connection.inject(IMPULSE, "tellraw " + e.getSender() + " {\"text\":\"Invalid block reference: " + str + "\",\"color\":\"red\"}");
             return null;
         }
         String blockType = rawBlock[0];
@@ -241,7 +245,7 @@ public class WorldEdit implements SetupListener{
         try {
             BlockType.valueOf(blockType.toUpperCase());
         } catch(IllegalArgumentException x) {
-            connection.injectAsImpulse("tellraw " + e.getSender() + " {\"text\":\"No block with id '" + blockType + "' exists\",\"color\":\"red\"}");
+            connection.inject(IMPULSE, "tellraw " + e.getSender() + " {\"text\":\"No block with id '" + blockType + "' exists\",\"color\":\"red\"}");
             return null;
         }
 
@@ -251,11 +255,11 @@ public class WorldEdit implements SetupListener{
                 try {
                     dataValue = Integer.parseInt(rawBlock[1]);
                 } catch(NumberFormatException x) {
-                    connection.injectAsImpulse("tellraw " + e.getSender() + " {\"text\":\"Invalid data value: " + dataValue + "\",\"color\":\"red\"}");
+                    connection.inject(IMPULSE, "tellraw " + e.getSender() + " {\"text\":\"Invalid data value: " + dataValue + "\",\"color\":\"red\"}");
                     return null;
                 }
                 if(dataValue < 0 || dataValue > 15) {
-                    connection.injectAsImpulse("tellraw " + e.getSender() + " {\"text\":\"Invalid data value: " + dataValue + ". Must be between 0 and 15\",\"color\":\"red\"}");
+                    connection.inject(IMPULSE, "tellraw " + e.getSender() + " {\"text\":\"Invalid data value: " + dataValue + ". Must be between 0 and 15\",\"color\":\"red\"}");
                     return null;
                 }
             }
@@ -288,7 +292,7 @@ public class WorldEdit implements SetupListener{
             size.z = 32;
         }
         if(size.x == 0 || size.y == 0 || size.z == 0) return;
-        connection.injectAsImpulse("fill " + pos + " " + pos.translated(size.x-1,size.y-1,size.z-1) + " " + postCoordinateArgs);
+        connection.inject(IMPULSE, "fill " + pos + " " + pos.translated(size.x-1,size.y-1,size.z-1) + " " + postCoordinateArgs);
     }
 
 }
