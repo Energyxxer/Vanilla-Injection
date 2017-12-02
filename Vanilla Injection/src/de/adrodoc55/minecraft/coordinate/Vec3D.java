@@ -141,18 +141,20 @@ public class Vec3D implements Cloneable {
     return z;
   }
 
+  public Vec3D plus(double x, double y, double z) {
+    return new Vec3D(this.x + x, this.y + y, this.z + z);
+  }
+
   public Vec3D plus(Vec3D other) {
-    double x = this.x + other.x;
-    double y = this.y + other.y;
-    double z = this.z + other.z;
-    return new Vec3D(x, y, z);
+    return plus(other.x, other.y, other.z);
+  }
+
+  public Vec3D minus(double x, double y, double z) {
+    return new Vec3D(this.x - x, this.y - y, this.z - z);
   }
 
   public Vec3D minus(Vec3D other) {
-    double x = this.x - other.x;
-    double y = this.y - other.y;
-    double z = this.z - other.z;
-    return new Vec3D(x, y, z);
+    return minus(other.x, other.y, other.z);
   }
 
   public double get(Axis3 axis) {

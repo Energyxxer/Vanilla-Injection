@@ -127,18 +127,20 @@ public class Vec3I implements Cloneable {
     return z;
   }
 
+  public Vec3I plus(int x, int y, int z) {
+    return new Vec3I(this.x + x, this.y + y, this.z + z);
+  }
+
   public Vec3I plus(Vec3I other) {
-    int x = this.x + other.x;
-    int y = this.y + other.y;
-    int z = this.z + other.z;
-    return new Vec3I(x, y, z);
+    return plus(other.x, other.y, other.z);
+  }
+
+  public Vec3I minus(int x, int y, int z) {
+    return new Vec3I(this.x - x, this.y - y, this.z - z);
   }
 
   public Vec3I minus(Vec3I other) {
-    int x = this.x - other.x;
-    int y = this.y - other.y;
-    int z = this.z - other.z;
-    return new Vec3I(x, y, z);
+    return minus(other.x, other.y, other.z);
   }
 
   public int get(Axis3 axis) {
