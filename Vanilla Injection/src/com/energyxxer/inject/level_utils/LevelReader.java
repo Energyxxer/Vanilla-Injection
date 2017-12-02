@@ -26,7 +26,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.energyxxer.inject.level_utils.block.Block;
 import com.energyxxer.inject.level_utils.nbt.Tag;
-import com.energyxxer.inject.utils.Vector3D;
+
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 
 /**
  * Class for reading a level's chunks.
@@ -188,7 +189,7 @@ public class LevelReader {
      *
      * @return The block object at the specified position in the overworld.
      * */
-    public Block getBlockAtPos(Vector3D pos) {
+    public Block getBlockAtPos(Vec3I pos) {
         return getBlockAtPos(pos.x, pos.y, pos.z);
     }
 
@@ -201,7 +202,7 @@ public class LevelReader {
      *
      * @return The block object at the position in the dimension specified.
      * */
-    public Block getBlockAtPos(Vector3D pos, int dim) {
+    public Block getBlockAtPos(Vec3I pos, int dim) {
         return getBlockAtPos(pos.x, pos.y, pos.z, dim);
     }
 
@@ -233,7 +234,7 @@ public class LevelReader {
     public Block getBlockAtPos(int x, int y, int z, int dim) {
         Chunk chunk = getChunkAtPos(x, z, dim);
 
-        Vector3D pos = getInChunkPos(x, y, z);
+        Vec3I pos = getInChunkPos(x, y, z);
 
         return chunk.terrainData.getBlockAt(pos.x, pos.y, pos.z);
     }
@@ -246,7 +247,7 @@ public class LevelReader {
      *
      * @return The biome at the position in the overworld.
      * */
-    public Chunk.Biome getBiomeAtPos(Vector3D pos) {
+    public Chunk.Biome getBiomeAtPos(Vec3I pos) {
         return getBiomeAtPos(pos.x, pos.z);
     }
 
@@ -259,7 +260,7 @@ public class LevelReader {
      *
      * @return The biome at the position in the dimension specified.
      * */
-    public Chunk.Biome getBiomeAtPos(Vector3D pos, int dim) {
+    public Chunk.Biome getBiomeAtPos(Vec3I pos, int dim) {
         return getBiomeAtPos(pos.x, pos.z, dim);
     }
 
@@ -290,7 +291,7 @@ public class LevelReader {
     public Chunk.Biome getBiomeAtPos(int x, int z, int dim) {
         Chunk chunk = getChunkAtPos(x, z, dim);
 
-        Vector3D pos = getInChunkPos(x, 0, z);
+        Vec3I pos = getInChunkPos(x, 0, z);
 
         return chunk.biomeMap.getBiomeForColumn(pos.x, pos.z);
     }
@@ -302,7 +303,7 @@ public class LevelReader {
      *
      * @return The chunk at the position specified in the overworld.
      * */
-    public Chunk getChunkAtPos(Vector3D pos) {
+    public Chunk getChunkAtPos(Vec3I pos) {
         return getChunkAtPos(pos.x, pos.z);
     }
 
@@ -313,7 +314,7 @@ public class LevelReader {
      *
      * @return The chunk at the position in the dimension specified.
      * */
-    public Chunk getChunkAtPos(Vector3D pos, int dim) {
+    public Chunk getChunkAtPos(Vec3I pos, int dim) {
         return getChunkAtPos(pos.x, pos.z, dim);
     }
 
@@ -370,7 +371,7 @@ public class LevelReader {
      *
      * @return A point containing the position specified in a chunk coordinate space.
      * */
-    public static Vector3D getInChunkPos(Vector3D pos) {
+    public static Vec3I getInChunkPos(Vec3I pos) {
         return getInChunkPos(pos.x, pos.y, pos.z);
     }
 
@@ -383,14 +384,14 @@ public class LevelReader {
      *
      * @return A point containing the position specified in a chunk coordinate space.
      * */
-    public static Vector3D getInChunkPos(int x, int y, int z) {
+    public static Vec3I getInChunkPos(int x, int y, int z) {
         double inChunkX = x % 16;
         double inChunkZ = z % 16;
 
         if(inChunkX < 0) inChunkX = Math.ceil(inChunkX + 16);
         if(inChunkZ < 0) inChunkZ = Math.ceil(inChunkZ + 16);
 
-        return new Vector3D((int) inChunkX, y, (int) inChunkZ);
+        return new Vec3I((int) inChunkX, y, (int) inChunkZ);
     }
 
     /**

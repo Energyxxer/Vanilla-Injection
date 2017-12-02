@@ -1,6 +1,6 @@
 package com.energyxxer.inject_demo.util;
 
-import com.energyxxer.inject.utils.Vector3D;
+import de.adrodoc55.minecraft.coordinate.Vec3D;
 
 /**
  * Created by User on 4/11/2017.
@@ -24,7 +24,7 @@ public class Transform {
         this.pitch = pitch;
     }
 
-    public Vector3D.Double forward(double distance) {
+    public Vec3D forward(double distance) {
         double yawRad = Math.toRadians(360-yaw);
         double pitchRad = Math.toRadians(pitch);
 
@@ -33,9 +33,9 @@ public class Transform {
         double sinPitch = Math.sin(pitchRad);
         double cosPitch = Math.cos(pitchRad);
 
-        Vector3D.Double p = new Vector3D.Double(0, distance * -sinPitch, distance * cosPitch);
+        Vec3D p = new Vec3D(0, distance * -sinPitch, distance * cosPitch);
 
-        return new Vector3D.Double(x + p.z * sinYaw, y + p.y, z + p.x * -sinYaw + p.z * cosYaw);
+        return new Vec3D(x + p.z * sinYaw, y + p.y, z + p.x * -sinYaw + p.z * cosYaw);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class Transform {
         return (int) x + " " + (int) y + " " + (int) z;
     }
 
-    public Vector3D.Double asVector() {
-        return new Vector3D.Double(x,y,z);
+    public Vec3D asVector() {
+        return new Vec3D(x,y,z);
     }
 }

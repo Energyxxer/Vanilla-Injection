@@ -5,7 +5,9 @@ import static com.energyxxer.inject.InjectionBuffer.InjectionType.IMPULSE;
 import java.util.Random;
 
 import com.energyxxer.inject.InjectionConnection;
-import com.energyxxer.inject.utils.Vector3D;
+
+import de.adrodoc55.minecraft.coordinate.Vec3D;
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 
 /**
  * Created by User on 4/12/2017.
@@ -25,8 +27,8 @@ public class Tree {
     private static final String execute = "execute @e[type=armor_stand,name=$genTree] ~ ~ ~ ";
 
     int treeHeight;
-    Vector3D.Double pos;
-    Vector3D.Double incline;
+    Vec3D pos;
+    Vec3D incline;
     double inclineAngle;
     double globalInclineFactor;
     double mcInclineAngle;
@@ -38,8 +40,7 @@ public class Tree {
     void generate() {
         treeHeight = random.nextInt(maxTreeHeight - minTreeHeight + 1) + minTreeHeight;
 
-        pos = new Vector3D.Double();
-        incline = new Vector3D.Double();
+        pos = new Vec3D();
 
         double minOffset = 0.1;
         double maxOffset = 0.6;
@@ -47,8 +48,9 @@ public class Tree {
         inclineAngle = random.nextDouble() * 2 * Math.PI;
         globalInclineFactor = random.nextDouble() * (maxOffset - minOffset) + minOffset;
 
-        incline.x = Math.cos(inclineAngle) * globalInclineFactor;
-        incline.z = Math.sin(inclineAngle) * globalInclineFactor;
+        double inclineX = Math.cos(inclineAngle) * globalInclineFactor;
+        double inclineZ = Math.sin(inclineAngle) * globalInclineFactor;
+        incline = new Vec3D(inclineX, 0, inclineZ);
 
         mcInclineAngle = inclineAngle - 90;
 
@@ -67,17 +69,17 @@ public class Tree {
             0
         };
 
-        Vector3D[] rootOffsets = new Vector3D[] {
-                new Vector3D(0,0,-1),
-                new Vector3D(1, 0, 0),
-                new Vector3D(0, 0, 1),
-                new Vector3D(1, 0, 0),
+        Vec3I[] rootOffsets = new Vec3I[] {
+                new Vec3I(0, 0, -1),
+                new Vec3I(1, 0, 0),
+                new Vec3I(0, 0, 1),
+                new Vec3I(1, 0, 0),
                 null, null, null, null
         };
-        rootOffsets[NE] = rootOffsets[N].translated(rootOffsets[E]);
-        rootOffsets[SE] = rootOffsets[S].translated(rootOffsets[E]);
-        rootOffsets[SW] = rootOffsets[S].translated(rootOffsets[W]);
-        rootOffsets[NW] = rootOffsets[N].translated(rootOffsets[W]);
+        rootOffsets[NE] = rootOffsets[N].plus(rootOffsets[E]);
+        rootOffsets[SE] = rootOffsets[S].plus(rootOffsets[E]);
+        rootOffsets[SW] = rootOffsets[S].plus(rootOffsets[W]);
+        rootOffsets[NW] = rootOffsets[N].plus(rootOffsets[W]);
 
 
         double avgRootHeight = (rootHeights[N] + rootHeights[S] + rootHeights[E] + rootHeights[W]) / 4;
@@ -96,7 +98,7 @@ public class Tree {
             connection.inject(IMPULSE, execute + "setblock ~" + (int) pos.x + " ~" + pos.y + " ~" + (int) pos.z + " minecraft:log2 variant=dark_oak,axis=none");
             for(int d = 0; d < 8; d++) {
                 if(y <= rootHeights[d]) {
-                    Vector3D offset = rootOffsets[d];
+                    Vec3I offset = rootOffsets[d];
                     connection.inject(IMPULSE, execute + "setblock ~" + ((int) pos.x + offset.x) + " ~" + pos.y + " ~" + ((int) pos.z + offset.z) + " minecraft:log2 variant=dark_oak,axis=none");
                 }
             }
@@ -116,10 +118,7 @@ public class Tree {
                 connection.inject(IMPULSE, execute + "fill ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z-1) + " ~" + ((int) pos.x) + " ~" + (pos.y) + " ~" + ((int) pos.z+1) + " minecraft:leaves variant=" + getRandomLeaf() + ",check_decay=false,decayable=false replace air");
             }
 
-            pos.y++;
-
-            pos.x += incline.x * heightFactor;
-            pos.z += incline.z * heightFactor;
+            pos = pos.plus(incline.x * heightFactor, 1, incline.z * heightFactor);
 
             if(branchCooldown > 0) branchCooldown--;
         }

@@ -2,7 +2,7 @@ package com.energyxxer.inject_demo.treegen;
 
 import static com.energyxxer.inject.InjectionBuffer.InjectionType.IMPULSE;
 
-import com.energyxxer.inject.utils.Vector3D;
+import de.adrodoc55.minecraft.coordinate.Vec3D;
 
 /**
  * Created by User on 4/13/2017.
@@ -35,7 +35,7 @@ public class TreeBranch {
     }
 
     void generate() {
-        Vector3D.Double bPos = new Vector3D.Double(tree.pos.x, tree.pos.y, tree.pos.z);
+        Vec3D bPos = tree.pos;
 
         for(int i = 0; i <= length; i++) {
 
@@ -50,9 +50,10 @@ public class TreeBranch {
                 tree.connection.inject(IMPULSE, execute + "fill ~" + ((int) bPos.x) + " ~" + (bPos.y) + " ~" + ((int) bPos.z-1) + " ~" + ((int) bPos.x) + " ~" + (bPos.y) + " ~" + ((int) bPos.z+1) + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false replace air");
             }
 
-            bPos.x += Math.cos(angle);
-            bPos.y += (i / length) * -incline;
-            bPos.z += Math.sin(angle);
+            double deltaX = Math.cos(angle);
+            double deltaY = (i / length) * -incline;
+            double deltaZ = Math.sin(angle);
+            bPos = bPos.plus(deltaX, deltaY, deltaZ);
         }
         tree.connection.inject(IMPULSE, execute + "setblock ~" + (int) bPos.x + " ~" + bPos.y + " ~" + (int) bPos.z + " minecraft:leaves variant=" + tree.getRandomLeaf() + ",check_decay=false,decayable=false keep");
     }
