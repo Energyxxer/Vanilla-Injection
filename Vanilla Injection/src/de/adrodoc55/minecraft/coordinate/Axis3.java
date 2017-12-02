@@ -23,6 +23,18 @@ public enum Axis3 {
     }
 
     @Override
+    Vec3D with(Vec3D c, double value) {
+      double x = value;
+      return new Vec3D(x, c.y, c.z);
+    }
+
+    @Override
+    Vec3I with(Vec3I c, int value) {
+      int x = value;
+      return new Vec3I(x, c.y, c.z);
+    }
+
+    @Override
     Vec3D plus(Vec3D c, double scalar) {
       double x = c.x + scalar;
       return new Vec3D(x, c.y, c.z);
@@ -51,6 +63,18 @@ public enum Axis3 {
     }
 
     @Override
+    Vec3D with(Vec3D c, double value) {
+      double y = value;
+      return new Vec3D(c.x, y, c.z);
+    }
+
+    @Override
+    Vec3I with(Vec3I c, int value) {
+      int y = value;
+      return new Vec3I(c.x, y, c.z);
+    }
+
+    @Override
     Vec3D plus(Vec3D c, double scalar) {
       double y = c.y + scalar;
       return new Vec3D(c.x, y, c.z);
@@ -76,6 +100,18 @@ public enum Axis3 {
     @Override
     public int of(Vec3I c) {
       return c.z;
+    }
+
+    @Override
+    Vec3D with(Vec3D c, double value) {
+      double z = value;
+      return new Vec3D(c.x, c.y, z);
+    }
+
+    @Override
+    Vec3I with(Vec3I c, int value) {
+      int z = value;
+      return new Vec3I(c.x, c.y, z);
     }
 
     @Override
@@ -132,6 +168,10 @@ public enum Axis3 {
    * @return the extend of the {@link Vec3I}
    */
   public abstract int of(Vec3I c);
+
+  abstract Vec3D with(Vec3D c, double value);
+
+  abstract Vec3I with(Vec3I c, int value);
 
   abstract Vec3D plus(Vec3D c, double scalar);
 

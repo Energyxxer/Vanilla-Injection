@@ -141,6 +141,42 @@ public class Vec3D implements Cloneable {
     return z;
   }
 
+  public double get(Axis3 axis) {
+    return axis.of(this);
+  }
+
+  public double get(Direction3 direction) {
+    double value = get(direction.getAxis());
+    if (direction.isNegative()) {
+      value = -value;
+    }
+    return value;
+  }
+
+  public Vec3D withX(double x) {
+    return new Vec3D(x, y, z);
+  }
+
+  public Vec3D withY(double y) {
+    return new Vec3D(x, y, z);
+  }
+
+  public Vec3D withZ(double z) {
+    return new Vec3D(x, y, z);
+  }
+
+  public Vec3D with(Axis3 axis, double value) {
+    return axis.with(this, value);
+  }
+
+  public Vec3D with(Direction3 direction, double value) {
+    Axis3 axis = direction.getAxis();
+    if (direction.isNegative()) {
+      value = -value;
+    }
+    return axis.with(this, value);
+  }
+
   public Vec3D plus(double x, double y, double z) {
     return new Vec3D(this.x + x, this.y + y, this.z + z);
   }
@@ -155,19 +191,6 @@ public class Vec3D implements Cloneable {
 
   public Vec3D minus(Vec3D other) {
     return minus(other.x, other.y, other.z);
-  }
-
-  public double get(Axis3 axis) {
-    return axis.of(this);
-  }
-
-  public double get(Direction3 d) {
-    double value = get(d.getAxis());
-    if (d.isNegative()) {
-      return -value;
-    } else {
-      return value;
-    }
   }
 
   public Vec3D plus(double scalar, Direction3 direction) {
