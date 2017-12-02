@@ -90,9 +90,9 @@ public class Vec3D implements Cloneable {
   }
 
   @Override
-  public Object clone() {
+  public Vec3D clone() {
     try {
-      return super.clone();
+      return (Vec3D) super.clone();
     } catch (CloneNotSupportedException ex) {
       // this shouldn't happen, since we are Cloneable
       throw new InternalError(ex);

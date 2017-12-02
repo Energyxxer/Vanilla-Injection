@@ -87,9 +87,9 @@ public class Vec3I implements Cloneable {
   }
 
   @Override
-  public Object clone() {
+  public Vec3I clone() {
     try {
-      return super.clone();
+      return (Vec3I) super.clone();
     } catch (CloneNotSupportedException ex) {
       // this shouldn't happen, since we are Cloneable
       throw new InternalError(ex);
