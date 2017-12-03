@@ -87,9 +87,9 @@ public class Vec3I implements Cloneable {
   }
 
   @Override
-  public Object clone() {
+  public Vec3I clone() {
     try {
-      return super.clone();
+      return (Vec3I) super.clone();
     } catch (CloneNotSupportedException ex) {
       // this shouldn't happen, since we are Cloneable
       throw new InternalError(ex);
@@ -127,31 +127,56 @@ public class Vec3I implements Cloneable {
     return z;
   }
 
-  public Vec3I plus(Vec3I other) {
-    int x = this.x + other.x;
-    int y = this.y + other.y;
-    int z = this.z + other.z;
-    return new Vec3I(x, y, z);
-  }
-
-  public Vec3I minus(Vec3I other) {
-    int x = this.x - other.x;
-    int y = this.y - other.y;
-    int z = this.z - other.z;
-    return new Vec3I(x, y, z);
-  }
-
   public int get(Axis3 axis) {
     return axis.of(this);
   }
 
-  public int get(Direction3 d) {
-    int value = get(d.getAxis());
-    if (d.isNegative()) {
-      return -value;
-    } else {
-      return value;
+  public int get(Direction3 direction) {
+    int value = get(direction.getAxis());
+    if (direction.isNegative()) {
+      value = -value;
     }
+    return value;
+  }
+
+  public Vec3I withX(int x) {
+    return new Vec3I(x, y, z);
+  }
+
+  public Vec3I withY(int y) {
+    return new Vec3I(x, y, z);
+  }
+
+  public Vec3I withZ(int z) {
+    return new Vec3I(x, y, z);
+  }
+
+  public Vec3I with(Axis3 axis, int value) {
+    return axis.with(this, value);
+  }
+
+  public Vec3I with(Direction3 direction, int value) {
+    Axis3 axis = direction.getAxis();
+    if (direction.isNegative()) {
+      value = -value;
+    }
+    return axis.with(this, value);
+  }
+
+  public Vec3I plus(int x, int y, int z) {
+    return new Vec3I(this.x + x, this.y + y, this.z + z);
+  }
+
+  public Vec3I plus(Vec3I other) {
+    return plus(other.x, other.y, other.z);
+  }
+
+  public Vec3I minus(int x, int y, int z) {
+    return new Vec3I(this.x - x, this.y - y, this.z - z);
+  }
+
+  public Vec3I minus(Vec3I other) {
+    return minus(other.x, other.y, other.z);
   }
 
   public Vec3I plus(int scalar, Direction3 direction) {
@@ -175,7 +200,7 @@ public class Vec3I implements Cloneable {
   /**
    * Simple scalar multiplication.
    *
-   * @param scalar to multiply this with
+   * @param scalar to multiply {@code this} with
    * @return a copy of {@code this} {@link Vec3I} that is multiplied with the scalar
    */
   public Vec3I mult(int scalar) {
@@ -208,13 +233,9 @@ public class Vec3I implements Cloneable {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    long temp;
-    temp = Double.doubleToLongBits(x);
-    result = prime * result + (int) (temp ^ (temp >>> 32));
-    temp = Double.doubleToLongBits(y);
-    result = prime * result + (int) (temp ^ (temp >>> 32));
-    temp = Double.doubleToLongBits(z);
-    result = prime * result + (int) (temp ^ (temp >>> 32));
+    result = prime * result + x;
+    result = prime * result + y;
+    result = prime * result + z;
     return result;
   }
 
@@ -227,11 +248,11 @@ public class Vec3I implements Cloneable {
     if (getClass() != obj.getClass())
       return false;
     Vec3I other = (Vec3I) obj;
-    if (Double.doubleToLongBits(x) != Double.doubleToLongBits(other.x))
+    if (x != other.x)
       return false;
-    if (Double.doubleToLongBits(y) != Double.doubleToLongBits(other.y))
+    if (y != other.y)
       return false;
-    if (Double.doubleToLongBits(z) != Double.doubleToLongBits(other.z))
+    if (z != other.z)
       return false;
     return true;
   }

@@ -90,9 +90,9 @@ public class Vec3D implements Cloneable {
   }
 
   @Override
-  public Object clone() {
+  public Vec3D clone() {
     try {
-      return super.clone();
+      return (Vec3D) super.clone();
     } catch (CloneNotSupportedException ex) {
       // this shouldn't happen, since we are Cloneable
       throw new InternalError(ex);
@@ -141,31 +141,56 @@ public class Vec3D implements Cloneable {
     return z;
   }
 
-  public Vec3D plus(Vec3D other) {
-    double x = this.x + other.x;
-    double y = this.y + other.y;
-    double z = this.z + other.z;
-    return new Vec3D(x, y, z);
-  }
-
-  public Vec3D minus(Vec3D other) {
-    double x = this.x - other.x;
-    double y = this.y - other.y;
-    double z = this.z - other.z;
-    return new Vec3D(x, y, z);
-  }
-
   public double get(Axis3 axis) {
     return axis.of(this);
   }
 
-  public double get(Direction3 d) {
-    double value = get(d.getAxis());
-    if (d.isNegative()) {
-      return -value;
-    } else {
-      return value;
+  public double get(Direction3 direction) {
+    double value = get(direction.getAxis());
+    if (direction.isNegative()) {
+      value = -value;
     }
+    return value;
+  }
+
+  public Vec3D withX(double x) {
+    return new Vec3D(x, y, z);
+  }
+
+  public Vec3D withY(double y) {
+    return new Vec3D(x, y, z);
+  }
+
+  public Vec3D withZ(double z) {
+    return new Vec3D(x, y, z);
+  }
+
+  public Vec3D with(Axis3 axis, double value) {
+    return axis.with(this, value);
+  }
+
+  public Vec3D with(Direction3 direction, double value) {
+    Axis3 axis = direction.getAxis();
+    if (direction.isNegative()) {
+      value = -value;
+    }
+    return axis.with(this, value);
+  }
+
+  public Vec3D plus(double x, double y, double z) {
+    return new Vec3D(this.x + x, this.y + y, this.z + z);
+  }
+
+  public Vec3D plus(Vec3D other) {
+    return plus(other.x, other.y, other.z);
+  }
+
+  public Vec3D minus(double x, double y, double z) {
+    return new Vec3D(this.x - x, this.y - y, this.z - z);
+  }
+
+  public Vec3D minus(Vec3D other) {
+    return minus(other.x, other.y, other.z);
   }
 
   public Vec3D plus(double scalar, Direction3 direction) {

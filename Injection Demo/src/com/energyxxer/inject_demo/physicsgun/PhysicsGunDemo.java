@@ -13,11 +13,12 @@ import javax.swing.Timer;
 
 import com.energyxxer.inject.InjectionConnection;
 import com.energyxxer.inject.structure.Command;
-import com.energyxxer.inject.utils.Vector3D;
 import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;
 import com.energyxxer.inject_demo.util.Transform;
+
+import de.adrodoc55.minecraft.coordinate.Vec3D;
 
 /**
  * Created by User on 4/19/2017.
@@ -68,8 +69,7 @@ public class PhysicsGunDemo implements SetupListener {
                     PGPlayerInfo player = playerInfo.get(username);
                     //Raytracing to find possible entities
                     for(double i = 1; i <= MAX_REACH; i++) {
-                        Vector3D.Double vec = player.transform.forward(i);
-                        vec.translate(0,PGPlayerInfo.EYE_LEVEL,0);
+                        Vec3D vec = player.transform.forward(i).plus(0, PGPlayerInfo.EYE_LEVEL, 0);
                         connection.inject(IMPULSE, "execute " + username + " " + vec + " scoreboard players tag @e[name=!" + username + ",r=2] add pg_control_" + username + "$0");
                     }
                     //Tagging the closest matching entity
@@ -101,14 +101,9 @@ public class PhysicsGunDemo implements SetupListener {
                     PGPlayerInfo player = playerInfo.get(username);
                     player.active = false;
 
-                    Vector3D.Double forward = player.transform.forward(1);
-                    forward.x -= player.transform.x;
-                    forward.y -= player.transform.y;
-                    forward.z -= player.transform.z;
-
-                    forward.x *= 2 * MAX_REACH / player.distance;
-                    forward.y *= 2 * MAX_REACH / player.distance;
-                    forward.z *= 2 * MAX_REACH / player.distance;
+                    Vec3D forward = player.transform.forward(1);
+                    forward = forward.minus(player.transform.asVector());
+                    forward = forward.mult(2 * MAX_REACH / player.distance);
 
                     connection.inject(IMPULSE, "execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ playsound minecraft:entity.ghast.shoot master @a ~ ~ ~ 1 1 0");
                     connection.inject(IMPULSE, "execute @a[name=" + username + ",tag=!pg_sneaking] ~ ~ ~ playsound minecraft:entity.zombie.attack_iron_door master @a ~ ~ ~ 1 1 0");
@@ -209,10 +204,8 @@ public class PhysicsGunDemo implements SetupListener {
         Timer timer = new Timer(100, e -> {
             for(PGPlayerInfo player : playerInfo.values()) {
                 if(player.active) {
-                    Vector3D.Double forward = player.transform.forward(player.distance).translated(0,PGPlayerInfo.EYE_LEVEL - 0.5,0);
-                    forward.x -= player.transform.x;
-                    forward.y -= player.transform.y;
-                    forward.z -= player.transform.z;
+                    Vec3D forward = player.transform.forward(player.distance).plus(0, PGPlayerInfo.EYE_LEVEL - 0.5, 0);
+                    forward = forward.minus(player.transform.asVector());
 
                     connection.inject(REPEAT, "execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ teleport @e[tag=pg_control_" + player.username + "] ~" + forward.x + " ~" + forward.y + " ~" + forward.z);
                     connection.inject(REPEAT, "execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ execute @e[tag=pg_control_" + player.username + "] ~ ~ ~ particle reddust ~ ~0.5 ~ 0.0001 0.75 1 1 0 force");

@@ -13,12 +13,13 @@ import java.util.function.Consumer;
 import com.energyxxer.inject.InjectionConnection;
 import com.energyxxer.inject.level_utils.LevelReader;
 import com.energyxxer.inject.level_utils.block.BlockType;
-import com.energyxxer.inject.utils.Vector3D;
 import com.energyxxer.inject_demo.common.Commons;
 import com.energyxxer.inject_demo.common.DisplayWindow;
 import com.energyxxer.inject_demo.common.SetupListener;
 import com.energyxxer.log.ChatEvent;
 import com.energyxxer.log.SuccessEvent;
+
+import de.adrodoc55.minecraft.coordinate.Vec3I;
 
 /**
  * Created by User on 4/13/2017.
@@ -81,7 +82,7 @@ public class WorldEdit implements SetupListener{
                                 int y = Integer.parseInt(args[2]);
                                 int z = Integer.parseInt(args[3]);
                                 WEPlayerInfo player = playerInfo.get(m.getSender());
-                                player.updateEditPos(index, new Vector3D(x,y,z), connection);
+                                player.updateEditPos(index, new Vec3I(x,y,z), connection);
                             } catch(NumberFormatException x) {
                                 connection.inject(IMPULSE, "tellraw " + m.getSender() + "{\"text\":\"Usage: ..pos" + index + " <x y z>\",\"color\":\"red\"}");
                             }
@@ -92,7 +93,7 @@ public class WorldEdit implements SetupListener{
                         connection.inject(MINECART, "execute " + m.getSender() + " ~ ~ ~ entitydata @e[type=area_effect_cloud,name=$weTransform,c=1] {we:transform}");
                         connection.inject(MINECART, "testfor " + m.getSender(), (Consumer<SuccessEvent>) e -> {
                             WEPlayerInfo player = playerInfo.get(m.getSender());
-                            player.updateEditPos(index, player.transform.asVector().asIntVector(), connection);
+                            player.updateEditPos(index, player.transform.asVector().floor(), connection);
                         });
                     }
                 } else if(args[0].equals("..set")) {
@@ -122,10 +123,10 @@ public class WorldEdit implements SetupListener{
                             }
                             String postCoordinateArgs = (args.length > 2) ? block2 + " replace " + block : block;
                             connection.inject(IMPULSE, "title " + m.getSender() + " actionbar {\"text\":\"Setting region's walls to " + BlockType.valueOf(block.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
-                            splitFill(connection, new Vector3D(player.pos1.x, player.pos1.y, player.pos1.z), new Vector3D(player.pos2.x, player.pos2.y, player.pos1.z), postCoordinateArgs);
-                            splitFill(connection, new Vector3D(player.pos1.x, player.pos1.y, player.pos1.z), new Vector3D(player.pos1.x, player.pos2.y, player.pos2.z), postCoordinateArgs);
-                            splitFill(connection, new Vector3D(player.pos2.x, player.pos1.y, player.pos2.z), new Vector3D(player.pos1.x, player.pos2.y, player.pos2.z), postCoordinateArgs);
-                            splitFill(connection, new Vector3D(player.pos2.x, player.pos1.y, player.pos2.z), new Vector3D(player.pos2.x, player.pos2.y, player.pos1.z), postCoordinateArgs);
+                            splitFill(connection, new Vec3I(player.pos1.x, player.pos1.y, player.pos1.z), new Vec3I(player.pos2.x, player.pos2.y, player.pos1.z), postCoordinateArgs);
+                            splitFill(connection, new Vec3I(player.pos1.x, player.pos1.y, player.pos1.z), new Vec3I(player.pos1.x, player.pos2.y, player.pos2.z), postCoordinateArgs);
+                            splitFill(connection, new Vec3I(player.pos2.x, player.pos1.y, player.pos2.z), new Vec3I(player.pos1.x, player.pos2.y, player.pos2.z), postCoordinateArgs);
+                            splitFill(connection, new Vec3I(player.pos2.x, player.pos1.y, player.pos2.z), new Vec3I(player.pos2.x, player.pos2.y, player.pos1.z), postCoordinateArgs);
                         } else {
                             connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"You must first select two points!\",\"color\":\"red\"}");
                         }
@@ -171,11 +172,11 @@ public class WorldEdit implements SetupListener{
                             if(block == null) return;
                             connection.inject(IMPULSE, "title " + m.getSender() + " actionbar {\"text\":\"Setting region's center to " + BlockType.valueOf(block.split(" ")[0].toUpperCase()).name + "\",\"color\":\"dark_aqua\"}");
                             splitFill(connection,
-                                    new Vector3D(
+                                    new Vec3I(
                                             (int) Math.floor((player.pos2.x+player.pos1.x)/2.0),
                                             (int) Math.floor((player.pos2.y+player.pos1.y)/2.0),
                                             (int) Math.floor((player.pos2.z+player.pos1.z)/2.0)),
-                                    new Vector3D(
+                                    new Vec3I(
                                             (int) Math.ceil((player.pos2.x+player.pos1.x)/2.0),
                                             (int) Math.ceil((player.pos2.y+player.pos1.y)/2.0),
                                             (int) Math.ceil((player.pos2.z+player.pos1.z)/2.0)),
@@ -271,28 +272,28 @@ public class WorldEdit implements SetupListener{
         return (blockType + " " + data).trim();
     }
 
-    private static void splitFill(InjectionConnection connection, Vector3D rawPos1, Vector3D rawPos2, String postCoordinateArgs) {
-        Vector3D pos1 = new Vector3D(Math.min(rawPos1.x, rawPos2.x), Math.min(rawPos1.y, rawPos2.y), Math.min(rawPos1.z, rawPos2.z));
-        Vector3D pos2 = new Vector3D(Math.max(rawPos1.x, rawPos2.x), Math.max(rawPos1.y, rawPos2.y), Math.max(rawPos1.z, rawPos2.z));
-        Vector3D size = new Vector3D(pos2.x-pos1.x+1, pos2.y-pos1.y+1, pos2.z-pos1.z+1);
+    private static void splitFill(InjectionConnection connection, Vec3I rawPos1, Vec3I rawPos2, String postCoordinateArgs) {
+        Vec3I pos1 = new Vec3I(Math.min(rawPos1.x, rawPos2.x), Math.min(rawPos1.y, rawPos2.y), Math.min(rawPos1.z, rawPos2.z));
+        Vec3I pos2 = new Vec3I(Math.max(rawPos1.x, rawPos2.x), Math.max(rawPos1.y, rawPos2.y), Math.max(rawPos1.z, rawPos2.z));
+        Vec3I size = new Vec3I(pos2.x-pos1.x+1, pos2.y-pos1.y+1, pos2.z-pos1.z+1);
         recSplitFill(connection, pos1, size, postCoordinateArgs);
     }
 
-    private static void recSplitFill(InjectionConnection connection, Vector3D pos, Vector3D size, String postCoordinateArgs) {
+    private static void recSplitFill(InjectionConnection connection, Vec3I pos, Vec3I size, String postCoordinateArgs) {
         if(size.x > 32) {
-            recSplitFill(connection, pos.translated(32,0,0), size.translated(-32,0,0), postCoordinateArgs);
-            size.x = 32;
+            recSplitFill(connection, pos.plus(32,0,0), size.plus(-32,0,0), postCoordinateArgs);
+            size = size.withX(32);
         }
         if(size.y > 32) {
-            recSplitFill(connection, pos.translated(0,32,0), size.translated(0,-32,0), postCoordinateArgs);
-            size.y = 32;
+            recSplitFill(connection, pos.plus(0,32,0), size.plus(0,-32,0), postCoordinateArgs);
+            size = size.withY(32);
         }
         if(size.z > 32) {
-            recSplitFill(connection, pos.translated(0,0,32), size.translated(0,0,-32), postCoordinateArgs);
-            size.z = 32;
+            recSplitFill(connection, pos.plus(0,0,32), size.plus(0,0,-32), postCoordinateArgs);
+            size = size.withZ(32);
         }
         if(size.x == 0 || size.y == 0 || size.z == 0) return;
-        connection.inject(IMPULSE, "fill " + pos + " " + pos.translated(size.x-1,size.y-1,size.z-1) + " " + postCoordinateArgs);
+        connection.inject(IMPULSE, "fill " + pos + " " + pos.plus(size.x-1,size.y-1,size.z-1) + " " + postCoordinateArgs);
     }
 
 }
