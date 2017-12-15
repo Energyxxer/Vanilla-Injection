@@ -293,7 +293,7 @@ public class WorldEdit implements SetupListener{
             size = size.withZ(32);
         }
         if(size.x == 0 || size.y == 0 || size.z == 0) return;
-        connection.inject(IMPULSE, "fill " + pos + " " + pos.plus(size.x-1,size.y-1,size.z-1) + " " + postCoordinateArgs);
+        connection.inject(IMPULSE, "fill " + pos.toAbsoluteString() + " " + pos.plus(size.x-1,size.y-1,size.z-1).toAbsoluteString() + " " + postCoordinateArgs);
     }
 
 }

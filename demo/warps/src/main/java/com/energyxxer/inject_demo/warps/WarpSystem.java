@@ -151,7 +151,7 @@ public class WarpSystem implements SetupListener {
                         connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"Usage: warp <warp name>\",\"color\":\"red\"}");
                     } else {
                         if(warps.containsKey(args[1])) {
-                            connection.inject(IMPULSE, "tp " + m.getSender() + " " + warps.get(args[1]));
+                            connection.inject(IMPULSE, "tp " + m.getSender() + " " + warps.get(args[1]).toString());
                             connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"Warping to '" + args[1] + "'\",\"color\":\"yellow\"}");
                         } else {
                             connection.inject(IMPULSE, "tellraw " + m.getSender() + " {\"text\":\"A warp by the name '" + args[1] + "' doesn't exist!\",\"color\":\"red\"}");

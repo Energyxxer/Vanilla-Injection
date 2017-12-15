@@ -207,7 +207,7 @@ public class PhysicsGunDemo implements SetupListener {
                     Vec3D forward = player.transform.forward(player.distance).plus(0, PGPlayerInfo.EYE_LEVEL - 0.5, 0);
                     forward = forward.minus(player.transform.asVector());
 
-                    connection.inject(REPEAT, "execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ teleport @e[tag=pg_control_" + player.username + "] ~" + forward.x + " ~" + forward.y + " ~" + forward.z);
+                    connection.inject(REPEAT, "execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ teleport @e[tag=pg_control_" + player.username + "] " + forward.toRelativeString());
                     connection.inject(REPEAT, "execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ execute @e[tag=pg_control_" + player.username + "] ~ ~ ~ particle reddust ~ ~0.5 ~ 0.0001 0.75 1 1 0 force");
                     connection.inject(REPEAT, "execute @a[name=" + player.username + ",score_pg_state_min=2,score_pg_state=2] ~ ~ ~ playsound minecraft:entity.guardian.ambient player @a ~ ~ ~ 1.0 1.5 0.0");
                 }
