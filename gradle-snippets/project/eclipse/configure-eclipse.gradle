@@ -1,0 +1,10 @@
+if (project != rootProject) {
+  eclipse.project.name = rootProject.projectDir.name + project.path.replace(':', '-')
+  eclipseProject.doFirst {
+    logger.lifecycle "Using name '${eclipse.project.name}'"
+  }
+}
+
+tasks.eclipse.dependsOn cleanEclipse
+apply from: rootProject.file('gradle-snippets/project/eclipse/full-clean-eclipse.gradle')
+apply from: rootProject.file('gradle-snippets/project/eclipse/use-encoding-in-eclipse.gradle')

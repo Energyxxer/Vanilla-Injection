@@ -1,0 +1,3 @@
+pluginManager.withPlugin('base') {
+  archivesBaseName = rootProject.name + project.path.replace(':', '-')
+}

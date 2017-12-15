@@ -1,0 +1,1 @@
+give @p minecraft:armor_stand 1 0 {display:{LocName:"Generate Tree"},ench:[{id:-1}],EntityTag:{CustomName:"$genTree"}}
