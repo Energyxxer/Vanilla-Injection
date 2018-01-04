@@ -1,0 +1,5 @@
+tasks.withType(Test) {
+  beforeTest { TestDescriptor descriptor ->
+    logger.lifecycle('Running test: ' + descriptor.name + '(' + descriptor.className + ')')
+  }
+}

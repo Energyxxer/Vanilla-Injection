@@ -6,11 +6,11 @@ Examples shown in the video are available as source code (Injection Demo/src) an
 When opening the example .jar files, you will be prompted the path to the log file, and the path to the world folder (It will try to guess the default paths). If either of those files do not exist, the path will be shown red, to let you know there's a mistake somewhere. Once you click "OK", the module should be running.
 In order to set up the injection structure block, place a structure block in your world (Make sure there is enough space for the structure; some modules, like the tree generator, require a lot more space than others), set it to LOAD mode, and set it to load the following structures:
 
-  * for Jarbot, load "inject/jarbot0"
-  * for Physics Gun, load "inject/physicsgun0"
-  * for Tree Generator, load "inject/treegen0"
-  * for Warps, load "inject/warp0"
-  * for WorldEdit, load "inject/worldedit0"
+  * for Jarbot, load "inject/jarbot/0"
+  * for Physics Gun, load "inject/physicsgun/0"
+  * for Tree Generator, load "inject/treegen/0"
+  * for Warps, load "inject/warp/0"
+  * for WorldEdit, load "inject/worldedit/0"
 
 After that, make sure it is getting a redstone signal each tick. You may use any clock of your liking, but a setblock clock is recommended.
 
@@ -82,7 +82,7 @@ These are all the available commands:
   * ..pos2: Sets Position 2 to the block at your feet.
   * ..pos1 \<integer : x> \<integer : y> \<integer : z>: Sets Position 1 to the given coordinates.
   * ..pos2 \<integer : x> \<integer : y> \<integer : z>: Sets Position 2 to the given coordinates.
-  
+
 All of the block-related commands will place blocks past the limit of the /fill command.
 
 BLOCK ARGUMENT:
@@ -91,13 +91,13 @@ There are 3 forms for the block argument:
   * \<block name>: In a setting context, it will place the given block in its default blockstate. In a replacing context, it will replace the given block, in any of its blockstates.
   * \<block name>:\<numerical data>: Refers to the block with its data value.
   * \<block name>#\<blockstate>: Refers to the block with its blockstate. There is little to no error handling of the blockstate, as most is done by Minecraft.
-  
+
   Examples:
   * glass
   * wool:5
   * concrete#color=red
   * log#variant=spruce,axis=none
-  
+
 # Library
 The injection library source is in 'Vanilla Injection/src'. All injection classes contain documentation for all fields and methods.
 Classes of interest are 'com.energyxxer.inject.InjectionMaster', 'com.energyxxer.inject.Injector' and 'com.energyxxer.inject.level_utils.LevelReader'.

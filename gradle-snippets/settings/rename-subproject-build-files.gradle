@@ -1,0 +1,5 @@
+def getAllChildren
+getAllChildren = { it.children + it.children.collectMany(getAllChildren) }
+getAllChildren(rootProject).each {
+  it.buildFileName = it.path.replace(':', '-').substring(1) + '.gradle'
+}

@@ -1,0 +1,7 @@
+eclipseProject.doLast {
+  logger.lifecycle "Using encoding '${encoding}'"
+  File f = file('.settings/org.eclipse.core.resources.prefs')
+  f.parentFile.mkdir()
+  f.write('eclipse.preferences.version=1\n')
+  f.append('encoding/<project>=' + encoding)
+}

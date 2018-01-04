@@ -1,0 +1,12 @@
+rootProject.name = 'vanilla-injection'
+
+include 'core'
+include 'demo:common'
+include 'demo:jarbot'
+include 'demo:physicsgun'
+include 'demo:treegen'
+include 'demo:warps'
+include 'demo:worldedit'
+include 'jarloader'
+
+apply from: file('gradle-snippets/settings/rename-subproject-build-files.gradle')
