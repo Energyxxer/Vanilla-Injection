@@ -179,11 +179,21 @@ public class InjectionBuffer {
       protected Collection<Command> getCommandCollection(InjectionBuffer buffer) {
         return buffer.minecartCommands;
       }
+
+      @Override
+      protected void setLogCommands(InjectionBuffer buffer, boolean logCommands) {
+        buffer.logMinecartCommands = logCommands;
+      }
     }, //
     IMPULSE {
       @Override
       protected Collection<Command> getCommandCollection(InjectionBuffer buffer) {
         return buffer.impulseCommands;
+      }
+
+      @Override
+      protected void setLogCommands(InjectionBuffer buffer, boolean logCommands) {
+        buffer.logImpulseCommands = logCommands;
       }
     }, //
     REPEAT {
@@ -191,9 +201,16 @@ public class InjectionBuffer {
       protected Collection<Command> getCommandCollection(InjectionBuffer buffer) {
         return buffer.repeatCommands;
       }
+
+      @Override
+      protected void setLogCommands(InjectionBuffer buffer, boolean logCommands) {
+        buffer.logRepeatCommands = logCommands;
+      }
     }, //
     ;
     protected abstract Collection<Command> getCommandCollection(InjectionBuffer buffer);
+
+    protected abstract void setLogCommands(InjectionBuffer buffer, boolean logCommands);
   }
 
   public void addCommand(InjectionType type, Command command) {
@@ -211,14 +228,14 @@ public class InjectionBuffer {
   public void addFetchCommand(InjectionType type, Command command) {
     runLocked(logAdminCommandsLock.readLock(), () -> {
       addCommand(type, command);
-      logMinecartCommands = true;
+      type.setLogCommands(this, true);
     });
   }
 
   public void addFetchCommands(InjectionType type, Collection<? extends Command> commands) {
     runLocked(logAdminCommandsLock.readLock(), () -> {
       addCommands(type, commands);
-      logMinecartCommands = true;
+      type.setLogCommands(this, true);
     });
   }
 
